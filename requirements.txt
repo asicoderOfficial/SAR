@@ -1,0 +1,8 @@
+numpy
+nltk
+argparse
+pickle
+sys
+re
+json
+time
