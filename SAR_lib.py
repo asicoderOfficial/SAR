@@ -405,8 +405,20 @@ class SAR_Project:
         return: posting list con los newid incluidos en p1 y p2
 
         """
-        
-        pass
+        # Presuponemos que las posting list estan ordenadas ascendientemente
+        answer = []
+        p1c = [*p1]
+        p2c = [*p2]
+        while p1c and p2c:
+            if p1c[0] == p2c[0]:
+                answer.append(p1c[0])
+                p1c.pop(0)
+                p2c.pop(0)
+            elif p1c[0] < p2c[0]:
+                p1c.pop(0)
+            else:
+                p2c.pop(0)
+        return answer
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
         ########################################
@@ -425,7 +437,29 @@ class SAR_Project:
         return: posting list con los newid incluidos de p1 o p2
 
         """
-
+        # Como se indica en el boletin, seguimos la estructura de "merge".
+        # Presuponemos que las posting list estan ordenadas ascendientemente
+        answer = []
+        p1c = [*p1]
+        p2c = [*p2]
+        while p1c and p2c:
+            if p1c[0] == p2c[0]:
+                answer.append(p1c[0])
+                p1c.pop(0)
+                p2c.pop(0)
+            elif p1c[0] < p2c[0]:
+                answer.append(p1c[0])
+                p1c.pop(0)
+            else:
+                answer.append(p2c[0])
+                p2c.pop(0)
+        while p1c:
+            answer.append(p1c[0])
+            p1c.pop(0)
+        while p2c:
+            answer.append(p2c[0])
+            p2c.pop(0)
+        return answer
         
         pass
         ########################################
