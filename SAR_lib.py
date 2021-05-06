@@ -333,10 +333,29 @@ class SAR_Project:
         elif self.use_stemming:
             return self.get_stemming(term, field)
         elif term[0] == " and tem[len(term)-1] == ":
-            return self.get_positionals(term, field)
+            return self.get_positionals(term[1:-1].split(" "), field)
         else:
             return self.index[field][term]
 
+
+    def get_positionals_recursive(self, terms, new_pos, new_id, terms_pos, field, positional_list):
+        """
+        Metodo que recursivamente atraviesa el arbol de ngramas, obteniendo todos para todas las noticias.
+        """
+        for new in self.index[field][terms[terms_pos]]:
+            #Caso base: llegamos a un nodo raiz.
+            #Es el ultimo termino de la lista y sigue al anterior.
+            if terms_pos == len(terms) - 1 and new[2] == new_pos - 1 and new[0] == new_id:
+                return positional_list + [new]
+            #Nos encontramos en el primer termino (nodos raiz).
+            #Se generan tantos arboles como noticias que contienen el primer termino existen.
+            elif terms_pos == 0:
+                self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, [new])
+            #Nodo intermedio, continuamos.
+            elif new[0] == new_id and new[2] == new_pos - 1:
+                self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, positional_list + [new])
+        #No hay continuacion posible para la lista de terminos que buscamos en esta noticia. Devolvemos vacio.
+        return []
 
 
     def get_positionals(self, terms, field='article'):
@@ -346,15 +365,17 @@ class SAR_Project:
         Devuelve la posting list asociada a una secuencia de terminos consecutivos.
 
         param:  "terms": lista con los terminos consecutivos para recuperar la posting list.
-                "field": campo sobre el que se debe recuperar la posting list, solo necesario se se hace la ampliacion de multiples indices
+                "field": campo sobre el que se debe recuperar la posting list, solo necesario si se hace la ampliacion de multiples indices
 
         return: posting list
 
         """
-        pass
-        ########################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE POSICIONALES ##
-        ########################################################
+        positionals = []
+        positionals += self.get_positionals_recursive()
+        return positionals
+
+
+
 
 
     def get_stemming(self, term, field='article'):
