@@ -328,10 +328,7 @@ class SAR_Project:
         return: posting list
 
         """
-        pass
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
+        return self.index[field][term]
 
 
 
