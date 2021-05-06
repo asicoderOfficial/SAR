@@ -404,11 +404,15 @@ class SAR_Project:
         return: posting list con todos los newid exceptos los contenidos en p
 
         """
+        #Convertir la lista p a un set para mejorar el tiempo de busqueda, pasando de O(n) a O(1), siendo n, len(p).
+        p = set(p)
+        reversed_posting_list = []
+        for k in self.index['article'].keys():
+            for new in self.index['article'][k]:
+                if new[0] not in p:
+                    reversed_posting_list.append(new[0])
         
-        pass
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
+        return reversed_posting_list
 
 
 
