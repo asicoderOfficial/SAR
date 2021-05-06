@@ -371,11 +371,8 @@ class SAR_Project:
 
         """
         positionals = []
-        positionals += self.get_positionals_recursive()
+        positionals += self.get_positionals_recursive(terms, 0, '', 0, field, positionals)
         return positionals
-
-
-
 
 
     def get_stemming(self, term, field='article'):
@@ -390,12 +387,8 @@ class SAR_Project:
         return: posting list
 
         """
-        
         stem = self.stemmer.stem(term)
-
-        ####################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
-        ####################################################
+        return [self.index[field][curr_term] for curr_term in self.index[field].keys() if stem in term]
 
 
     def get_permuterm(self, term, field='article'):
