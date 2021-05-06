@@ -1,3 +1,8 @@
+
+# Ommit data.
+2015/
+2016/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

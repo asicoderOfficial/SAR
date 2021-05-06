@@ -141,19 +141,35 @@ class SAR_Project:
         self.positional = args['positional']
         self.stemming = args['stem']
         self.permuterm = args['permuterm']
+        if self.multifield is not None:
+            new_self_index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}}
+            self.index = new_self_index
 
+        docid = 1
         for dir, subdirs, files in os.walk(root):
             for filename in files:
                 if filename.endswith('.json'):
                     fullname = os.path.join(dir, filename)
-                    self.index_file(fullname)
+                    self.index_file(fullname, docid)
+                    docid += 1
 
         ##########################################
         ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
         ##########################################
         
 
-    def index_file(self, filename):
+    def fill_posting_list(self, new, index_key, docid):
+        content = new['date'] if index_key == 'date' else self.tokenize(new[index_key])
+        pos = 1
+        for token in content:
+            if token not in self.index[index_key]:
+                self.index[index_key][token] = [(new['id'], docid, pos)]
+            else:
+                self.index[index_key][token] += [(new['id'], docid, pos)]
+            pos += 1
+        
+
+    def index_file(self, filename, docid):
         """
         NECESARIO PARA TODAS LAS VERSIONES
 
@@ -165,12 +181,18 @@ class SAR_Project:
         En estos casos, se recomienda crear nuevos metodos para hacer mas sencilla la implementacion
 
         input: "filename" es el nombre de un fichero en formato JSON Arrays (https://www.w3schools.com/js/js_json_arrays.asp).
-                Una vez parseado con json.load tendremos una lista de diccionarios, cada diccionario se corresponde a una noticia
+                Una vez parseado con json.load tendremos una lista de diccionarios, cada diccionario corresponde a una noticia
 
         """
 
         with open(filename) as fh:
             jlist = json.load(fh)
+
+        index_keys = self.index.keys()
+        for new in jlist:
+            for curr_index_key in index_keys:
+                self.fill_posting_list(new, curr_index_key, docid)
+
 
         #
         # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
