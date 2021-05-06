@@ -328,7 +328,14 @@ class SAR_Project:
         return: posting list
 
         """
-        return self.index[field][term]
+        if "*" in term or "?" in term:
+            return self.get_permuterm(term, field)
+        elif self.use_stemming:
+            return self.get_stemming(term, field)
+        elif term[0] == " and tem[len(term)-1] == ":
+            return self.get_positionals(term, field)
+        else:
+            return self.index[field][term]
 
 
 
