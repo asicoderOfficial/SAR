@@ -305,7 +305,8 @@ class SAR_Project:
 
         newquery = shunting_yard(infix_notation(query))
         operadores = []
-        newquery = list(map(lambda x: get_posting(format_terms(x)) if isinstance(x, list) else x, newquery))
+        newquery = list(map(lambda x: get_posting(format_terms(x)[2], format_terms(x)[0]) if isinstance(x, list)
+                            else x, newquery))
 
         i = 0
         while len(newquery) != 1: #Vamos a analizar hasta que obtengamos 1 lista resultado.
@@ -362,30 +363,35 @@ class SAR_Project:
 
         return out
 
-    def format_terms(self, terms):
+    def format_terms(self,terms):
         """
         Elimina los caracteres " y las palabras clave keywords:, title: etc para dejar los términos en una lista.
         Si contiene keywords, title... será incluido al principio de la lista.
-        :param terms: lista con los terminos
-        :return: lista con los terminos formateados [campo, 1, termino]
+        :param term: lista con los terminos
+        :return:  lista en formato: [campo, si aplicar o no stemming (1 si 0 no), [terminos]]
         """
         fterms = []
-        multifield = ["keyword:", "title:", "article:", "date:", "summary:"]
-        for term in terms:
-            for field in multifield:
-                if term[:len(field)] == field:
-                    fterms.append(field[:-1])
-                    fterms.append(1)
-                    fterms.append(term[len(field):])
-                    fterms.extend(terms[1:])
-                    break
+        multifield = [i[0] for i in fields]
+        fieldr = "article"
+        if terms[0].find(":") != -1:
+            field = terms[0][0:terms[0].find(":")]
+        else:
+            field = terms[0]
+        if field in multifield:
+            fieldr = field
+            fterms.extend(terms[1:])
         if not fterms:  # Si no hay keywords
             fterms = [*terms]  # Copia
-            fterms[0] = fterms[0][1:] if fterms[0][0] == "\"" else fterms[0]  # Eliminamos el primer caracter si es "
-        else:  # Si hay keywords
-            fterms[2] = fterms[2][1:] if fterms[2][0] == "\"" else fterms[2]  # Eliminamos el primer caracter si es "
+        if self.use_stemming and fterms[0][0] == "\"":
+            result = [fieldr, 0, fterms]
+        elif self.use_stemming:
+            result = [fieldr, 1, fterms]
+        else:
+            result = [fieldr, 0, fterms]
+        fterms[0] = fterms[0][1:] if fterms[0][0] == "\"" else fterms[0]  # Eliminamos el primer caracter si es "
         fterms[-1] = fterms[-1][:-1] if fterms[-1][-1] == "\"" else fterms[-1]  # Eliminamos el ultimo caracter si es "
-        return fterms
+
+        return result
 
     def infix_notation(self, query):
         """
@@ -412,7 +418,7 @@ class SAR_Project:
         if term: ops.append(term)
         return ops
 
-    def get_posting(self, term, field='article'):
+    def get_posting(self, terms, field='article'):
         """
         NECESARIO PARA TODAS LAS VERSIONES
 
@@ -422,21 +428,21 @@ class SAR_Project:
             - self.get_permuterm: para la ampliacion de permuterms
             - self.get_stemming: para la amplaicion de stemming
 
-
-        param:  "term": termino del que se debe recuperar la posting list.
-                "field": campo sobre el que se debe recuperar la posting list, solo necesario se se hace la ampliacion de multiples indices
-
+        param:  "terms": lista con el primer elemento indicando si aplicamos o no stemming y sus terminos en otra
+                field: campo a buscar
         return: posting list
 
         """
-        if "*" in term or "?" in term:
-            return self.get_permuterm(term, field)
-        elif self.use_stemming:
-            return self.get_stemming(term, field)
-        elif term[0] == " and tem[len(term)-1] == ":
-            return self.get_positionals(term[1:-1].split(" "), field)
+        stemming = terms[0]
+        if stemming:
+            return self.get_stemming(terms[1], field)
+        elif "*" in terms[1] or "?" in terms[1]:
+            return self.get_permuterm(terms[1], field)
+        elif len(terms)[1] > 1:
+            return self.get_positionals(terms[1], field)
         else:
-            return self.index[field][term]
+            return self.index[field][terms[1][0]]
+
 
 
     def get_positionals_recursive(self, terms, new_pos, new_id, terms_pos, field, positional_list):
@@ -490,7 +496,6 @@ class SAR_Project:
         """
         stem = self.stemmer.stem(term)
         return [self.index[field][curr_term] for curr_term in self.index[field].keys() if stem in term]
-
 
     def get_permuterm(self, term, field='article'):
         """
