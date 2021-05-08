@@ -140,19 +140,35 @@ class SAR_Project:
         self.positional = args['positional']
         self.stemming = args['stem']
         self.permuterm = args['permuterm']
+        if self.multifield is not None:
+            new_self_index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}}
+            self.index = new_self_index
 
+        docid = 1
         for dir, subdirs, files in os.walk(root):
             for filename in files:
                 if filename.endswith('.json'):
                     fullname = os.path.join(dir, filename)
-                    self.index_file(fullname)
+                    self.index_file(fullname, docid)
+                    docid += 1
 
         ##########################################
         ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
         ##########################################
         
 
-    def index_file(self, filename):
+    def fill_posting_list(self, new, index_key, docid):
+        content = new['date'] if index_key == 'date' else self.tokenize(new[index_key])
+        pos = 1
+        for token in content:
+            if token not in self.index[index_key]:
+                self.index[index_key][token] = [(new['id'], docid, pos)]
+            else:
+                self.index[index_key][token] += [(new['id'], docid, pos)]
+            pos += 1
+        
+
+    def index_file(self, filename, docid):
         """
         NECESARIO PARA TODAS LAS VERSIONES
 
@@ -164,12 +180,18 @@ class SAR_Project:
         En estos casos, se recomienda crear nuevos metodos para hacer mas sencilla la implementacion
 
         input: "filename" es el nombre de un fichero en formato JSON Arrays (https://www.w3schools.com/js/js_json_arrays.asp).
-                Una vez parseado con json.load tendremos una lista de diccionarios, cada diccionario se corresponde a una noticia
+                Una vez parseado con json.load tendremos una lista de diccionarios, cada diccionario corresponde a una noticia
 
         """
 
         with open(filename) as fh:
             jlist = json.load(fh)
+
+        index_keys = self.index.keys()
+        for new in jlist:
+            for curr_index_key in index_keys:
+                self.fill_posting_list(new, curr_index_key, docid)
+
 
         #
         # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
@@ -407,11 +429,34 @@ class SAR_Project:
         return: posting list
 
         """
-        pass
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
+        if "*" in term or "?" in term:
+            return self.get_permuterm(term, field)
+        elif self.use_stemming:
+            return self.get_stemming(term, field)
+        elif term[0] == " and tem[len(term)-1] == ":
+            return self.get_positionals(term[1:-1].split(" "), field)
+        else:
+            return self.index[field][term]
 
+
+    def get_positionals_recursive(self, terms, new_pos, new_id, terms_pos, field, positional_list):
+        """
+        Metodo que recursivamente atraviesa el arbol de ngramas, obteniendo todos para todas las noticias.
+        """
+        for new in self.index[field][terms[terms_pos]]:
+            #Caso base: llegamos a un nodo raiz.
+            #Es el ultimo termino de la lista y sigue al anterior.
+            if terms_pos == len(terms) - 1 and new[2] == new_pos - 1 and new[0] == new_id:
+                return positional_list + [new]
+            #Nos encontramos en el primer termino (nodos raiz).
+            #Se generan tantos arboles como noticias que contienen el primer termino existen.
+            elif terms_pos == 0:
+                self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, [new])
+            #Nodo intermedio, continuamos.
+            elif new[0] == new_id and new[2] == new_pos - 1:
+                self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, positional_list + [new])
+        #No hay continuacion posible para la lista de terminos que buscamos en esta noticia. Devolvemos vacio.
+        return []
 
 
     def get_positionals(self, terms, field='article'):
@@ -421,15 +466,14 @@ class SAR_Project:
         Devuelve la posting list asociada a una secuencia de terminos consecutivos.
 
         param:  "terms": lista con los terminos consecutivos para recuperar la posting list.
-                "field": campo sobre el que se debe recuperar la posting list, solo necesario se se hace la ampliacion de multiples indices
+                "field": campo sobre el que se debe recuperar la posting list, solo necesario si se hace la ampliacion de multiples indices
 
         return: posting list
 
         """
-        pass
-        ########################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE POSICIONALES ##
-        ########################################################
+        positionals = []
+        positionals += self.get_positionals_recursive(terms, 0, '', 0, field, positionals)
+        return positionals
 
 
     def get_stemming(self, term, field='article'):
@@ -444,12 +488,8 @@ class SAR_Project:
         return: posting list
 
         """
-        
         stem = self.stemmer.stem(term)
-
-        ####################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
-        ####################################################
+        return [self.index[field][curr_term] for curr_term in self.index[field].keys() if stem in term]
 
 
     def get_permuterm(self, term, field='article'):
@@ -486,11 +526,15 @@ class SAR_Project:
         return: posting list con todos los newid exceptos los contenidos en p
 
         """
+        #Convertir la lista p a un set para mejorar el tiempo de busqueda, pasando de O(n) a O(1), siendo n, len(p).
+        p = set(p)
+        reversed_posting_list = []
+        for k in self.index['article'].keys():
+            for new in self.index['article'][k]:
+                if new[0] not in p:
+                    reversed_posting_list.append(new[0])
         
-        pass
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
+        return reversed_posting_list
 
 
 
