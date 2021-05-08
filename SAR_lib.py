@@ -374,9 +374,9 @@ class SAR_Project:
         multifield = [i[0] for i in fields]
         fieldr = "article"
         if terms[0].find(":") != -1:
-            field = terms[0][0:terms[0].find(":")]
+            field = terms[0][0:terms[0].find(":")] 
         else:
-            field = terms[0]
+            field = 1
         if field in multifield:
             fieldr = field
             fterms.extend(terms[1:])
