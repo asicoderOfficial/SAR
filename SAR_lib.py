@@ -3,7 +3,6 @@ from nltk.stem.snowball import SnowballStemmer
 import os
 import re
 
-
 class SAR_Project:
     """
     Prototipo de la clase para realizar la indexacion y la recuperacion de noticias
@@ -282,12 +281,114 @@ class SAR_Project:
         if query is None or len(query) == 0:
             return []
 
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
+        newquery = shunting_yard(infix_notation(query))
+        operadores = []
+        newquery = list(map(lambda x: get_posting(format_terms(x)) if isinstance(x, list) else x, newquery))
 
- 
+        i = 0
+        while len(newquery) != 1: #Vamos a analizar hasta que obtengamos 1 lista resultado.
+            token = newquery[i]
+            if isinstance(token, list):
+                operadores.append(token) #Añadimos a operadores y seguimos analizando
+                i += 1
+            elif token == "NOT": #Si vemos una NOT, haremos reverse posting del ultimo elemento de la lista
+                newquery[i - 1] = reverse_posting(operadores.pop())
+                newquery.pop(i)
+                operadores = [] #Volvemos a analizar
+                i = 0
+            elif token == "AND" or token == "OR": #Si vemos una and o una or cogemos los ultimos 2
+                newquery[i] = and_posting(operadores.pop(), operadores.pop()) if token == "AND" \
+                    else or_posting(operadores.pop(), operadores.pop())
+                newquery.pop(i-2)
+                newquery.pop(i-2)
+                operadores = [] #Volvemos a analizar
+                i = 0
 
+        return newquery
+
+    def shunting_yard(self, inputt):
+        """
+        Convierte una cadena en notación de postfijo (Fácilmente analizable) usando el algoritmo shunting_yard
+        (con op unarios)
+
+        :param inputt: consulta en notacion de infijo
+        :return: consulta en notación de postfijo
+        """
+        stack = [] #Cola pperadores
+        out = [] #Salida
+        ops = ["OR", "AND", "NOT"] #Operadores
+        precs = [1, 1, 2] # Precedencias, mayor valor mas precedencia
+        for token in inputt:
+            if isinstance(token, list): #Si es un operando
+                out.append(token) #A la salida
+            elif token in ops[:2]: #Si es un operador
+                prec = precs[ops.index(token)]  # Precedencia del token
+                while stack and stack[-1] not in ["("] and precs[ops.index(stack[-1])] >= prec:  # Precedencia de la cola mayor que el token
+                    out.append(stack.pop()) #A la salida
+                stack.append(token) #A la cola de operadores
+            elif token == "NOT": #Si es un operador unario NOT, entonces no quitamos del stack.
+                stack.append(token)
+            elif token == "(":
+                stack.append(token)
+            elif token == ")":
+                while stack and stack[-1] != "(": # Buscamos el parentesis abierto
+                    out.append(stack.pop())
+                stack.pop() #Descartamos el parentesis
+        stack.reverse()
+        for op in stack: #Añadimos el resto de operadores
+            out.append(op)
+
+        return out
+
+    def format_terms(self, terms):
+        """
+        Elimina los caracteres " y las palabras clave keywords:, title: etc para dejar los términos en una lista.
+        Si contiene keywords, title... será incluido al principio de la lista.
+        :param terms: lista con los terminos
+        :return: lista con los terminos formateados [campo, 1, termino]
+        """
+        fterms = []
+        multifield = ["keyword:", "title:", "article:", "date:", "summary:"]
+        for term in terms:
+            for field in multifield:
+                if term[:len(field)] == field:
+                    fterms.append(field[:-1])
+                    fterms.append(1)
+                    fterms.append(term[len(field):])
+                    fterms.extend(terms[1:])
+                    break
+        if not fterms:  # Si no hay keywords
+            fterms = [*terms]  # Copia
+            fterms[0] = fterms[0][1:] if fterms[0][0] == "\"" else fterms[0]  # Eliminamos el primer caracter si es "
+        else:  # Si hay keywords
+            fterms[2] = fterms[2][1:] if fterms[2][0] == "\"" else fterms[2]  # Eliminamos el primer caracter si es "
+        fterms[-1] = fterms[-1][:-1] if fterms[-1][-1] == "\"" else fterms[-1]  # Eliminamos el ultimo caracter si es "
+        return fterms
+
+    def infix_notation(self, query):
+        """
+        Devuelve la consulta con notación de infijo.
+        La consulta no debe tener los caracteres " y ( ) como terminos
+        Útil para ser convertido a notación de postfijo.
+        :param query: consulta a realizar
+        :return: consulta en notacion de infijo NOT [Termino] OR [Termino]
+        """
+        query = query.replace("(", "( ")
+        query = query.replace(")", " )")
+        query = query.split(" ")
+        ops = []
+        term = []
+        for i in query:
+            if i not in ["NOT", "OR", "AND", "(", ")"]:
+                term.append(i)
+            elif term:
+                ops.append(term)
+                ops.append(i)
+                term = []
+            else:
+                ops.append(i)
+        if term: ops.append(term)
+        return ops
 
     def get_posting(self, term, field='article'):
         """
@@ -393,7 +494,7 @@ class SAR_Project:
 
 
 
-    def and_posting(self, p1, p2):
+    def and_posting(self, p1 ,p2):
         """
         NECESARIO PARA TODAS LAS VERSIONES
 
