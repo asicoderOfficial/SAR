@@ -442,9 +442,9 @@ class SAR_Project:
         if stemming: # Si se requiere stemming del termino:
             return self.get_stemming(terms[1], field)
         elif len(terms)[1] > 1:
-            return self.get_permuterm(terms[1], field)
-        elif "*" in terms[1] or "?" in terms[1]:
             return self.get_positionals(terms[1], field)
+        elif "*" in terms[1] or "?" in terms[1]:
+            return self.get_permuterm(terms[1][0], field)
         else:
             return self.index[field][terms[1][0]]
 
@@ -503,22 +503,61 @@ class SAR_Project:
         return [self.index[field][curr_term] for curr_term in self.index[field].keys() if stem in term]
 
     def get_permuterm(self, term, field='article'):
-        """
-        NECESARIO PARA LA AMPLIACION DE PERMUTERM
+        # Variable que nos servirá para controlar consultas con '?'
+        longitud = len(term)
 
-        Devuelve la posting list asociada a un termino utilizando el indice permuterm.
+        # Para buscar un permuterm, primero, hay que añadir el símbolo $ y rotar hasta que el comodín '?' o '*' esté al final
+        term = '$' + term
+        # Mientras que "*" o "?" no esté al final se rota
+        while (not (term[-1] == '*' or term[-1] == '?')):
+            term = term[-1] + term[:-1]
 
-        param:  "term": termino para recuperar la posting list, "term" incluye un comodin (* o ?).
-                "field": campo sobre el que se debe recuperar la posting list, solo necesario se se hace la ampliacion de multiples indices
+        # Ahora, la idea es seguir la regla: X * Y -> Y $ X*
+        # Hay que matizar 2 casos:
 
-        return: posting list
+        # Si es un "*" se debe buscar aquellas palabras que tengan como prefijo Y, y tengan como sufijo X
+        # Y PUEDEN HABER TANTAS LETRAS EN MEDIO COMO QUIERA
 
-        """
+        # Si es un "?" se debe buscar aquellas palabras que tengan como prefijo Y, y tengan como sufijo X
+        # PERO SOLO PUEDE HABER UNA LETRA EN MEDIO
+        final = term[-1]
 
-        ##################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA PERMUTERM ##
-        ##################################################
+        # Eliminamos el comodin del final
+        term = term[:-1]
+        posting_resultado = []
+        if final == '*':
 
+            for key in self.ptindex[field]:
+                # Obtenemos la lista de permuterms
+                permuterms = self.ptindex[field][key]
+
+                for permuterm in permuterms:
+
+                    # Si el permuterm está dentro de la lista de permuterms, hemos encontrado una palabra que se corresponde a la wildcard
+                    if term in permuterm:
+                        # Vamos sumando las noticias en las que aparece
+                        posting_resultado = self.or_posting(posting_resultado, self.index[field][key])
+                        break
+        else:
+            # final == '?'
+
+            # En este caso, la wildcard '?' es más restrictiva, como hemos dicho antes,
+            # solo puede haber una letra en medio, por lo tanto, hay que mirar si la palabra que vamos a buscarle
+            # el permuterm, es de longitud igual al término original
+            for key in self.ptindex[field]:
+                if len(key) == longitud:
+
+                    # Obtenemos la lista de permuterms
+                    permuterms = self.ptindex[field][key]
+
+                    for permuterm in permuterms:
+
+                        # Si el permuterm está dentro de la lista de permuterms, hemos encontrado una palabra que se corresponde a la wildcard
+                        if term in permuterm:
+                            # Vamos sumando las noticias en las que aparece
+                            posting_resultado = self.or_posting(posting_resultado, self.index[field][key])
+                            break
+        return posting_resultado
 
 
 
