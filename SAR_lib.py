@@ -303,10 +303,11 @@ class SAR_Project:
         if query is None or len(query) == 0:
             return []
 
-        newquery = shunting_yard(infix_notation(query))
+        newquery = shunting_yard(infix_notation(query))  # Pasamos la query de a notación infija y la pasamos
+                                                         # al algoritmo shunting_yard para obtener la postfija
         operadores = []
         newquery = list(map(lambda x: get_posting(format_terms(x)[2], format_terms(x)[0]) if isinstance(x, list)
-                            else x, newquery))
+                            else x, newquery))  # Formateamos los términos de la lista y obtenemos sus posting list.
 
         i = 0
         while len(newquery) != 1: #Vamos a analizar hasta que obtengamos 1 lista resultado.
@@ -337,57 +338,61 @@ class SAR_Project:
         :param inputt: consulta en notacion de infijo
         :return: consulta en notación de postfijo
         """
-        stack = [] #Cola pperadores
-        out = [] #Salida
-        ops = ["OR", "AND", "NOT"] #Operadores
+        stack = [] # Cola pperadores
+        out = [] # Salida
+        ops = ["OR", "AND", "NOT"] # Operadores
         precs = [1, 1, 2] # Precedencias, mayor valor mas precedencia
         for token in inputt:
-            if isinstance(token, list): #Si es un operando
-                out.append(token) #A la salida
-            elif token in ops[:2]: #Si es un operador
+            if isinstance(token, list): # Si es un operando
+                out.append(token) # A la salida
+            elif token in ops[:2]: # Si es un operador
                 prec = precs[ops.index(token)]  # Precedencia del token
                 while stack and stack[-1] not in ["("] and precs[ops.index(stack[-1])] >= prec:  # Precedencia de la cola mayor que el token
-                    out.append(stack.pop()) #A la salida
-                stack.append(token) #A la cola de operadores
-            elif token == "NOT": #Si es un operador unario NOT, entonces no quitamos del stack.
+                    out.append(stack.pop()) # A la salida
+                stack.append(token) # A la cola de operadores
+            elif token == "NOT": # Si es un operador unario NOT, entonces no quitamos del stack.
                 stack.append(token)
             elif token == "(":
                 stack.append(token)
             elif token == ")":
-                while stack and stack[-1] != "(": # Buscamos el parentesis abierto
+                while stack and stack[-1] != "(":  # Buscamos el parentesis abierto
                     out.append(stack.pop())
-                stack.pop() #Descartamos el parentesis
+                stack.pop()  # Descartamos el parentesis
         stack.reverse()
-        for op in stack: #Añadimos el resto de operadores
+        for op in stack:  # Añadimos el resto de operadores
             out.append(op)
 
         return out
 
-    def format_terms(self,terms):
+    def format_terms(self, terms):
         """
         Elimina los caracteres " y las palabras clave keywords:, title: etc para dejar los términos en una lista.
         Si contiene keywords, title... será incluido al principio de la lista.
         :param term: lista con los terminos
         :return:  lista en formato: [campo, si aplicar o no stemming (1 si 0 no), [terminos]]
         """
-        fterms = []
-        multifield = [i[0] for i in fields]
-        fieldr = "article"
-        if terms[0].find(":") != -1:
+        fterms = []  # Variable para almacenar los terminos formateados
+        multifield = [i[0] for i in fields] # Lista de campos
+        fieldr = "article"  # Campo default
+        if terms[0].find(":") != -1:  # Buscamos la primera aparaicion de : y asignamos el campo
+                                      # a lo que haya a la izquierda
             field = terms[0][0:terms[0].find(":")] 
         else:
-            field = 1
-        if field in multifield:
-            fieldr = field
-            fterms.extend(terms[1:])
+            field = 1  # Si no encontramos : no hay campos por tanto colocamos un valor arbitrario int
+        if field in multifield:  # Si esta el campo en la lista
+            fieldr = field  # El campo default pasa a ser el campo encontrado
+            terms[0] = terms[0][len(field) + 1:]  # Cambiamos el termino para que ya no contenga "campo:"
+            fterms.extend(terms[1:])  # Añadimos los elementos de
         if not fterms:  # Si no hay keywords
             fterms = [*terms]  # Copia
-        if self.use_stemming and fterms[0][0] == "\"":
-            result = [fieldr, 0, fterms]
-        elif self.use_stemming:
+        if self.use_stemming and fterms[0][0] == "\"":  # Si usamos stemming y el primer caracter es "
+            result = [fieldr, 0, fterms]  # Añadimos al resultado el campo, 0 para representar que no se usa stemming
+                                          # en estos los terminos
+        elif self.use_stemming:  # Si usamos stemming y no se ha cumplido lo anterior, usamos 1 para representar que
+                                 # sí se usa stemming
             result = [fieldr, 1, fterms]
         else:
-            result = [fieldr, 0, fterms]
+            result = [fieldr, 0, fterms] # En cualquier otro caso no se usa stemming
         fterms[0] = fterms[0][1:] if fterms[0][0] == "\"" else fterms[0]  # Eliminamos el primer caracter si es "
         fterms[-1] = fterms[-1][:-1] if fterms[-1][-1] == "\"" else fterms[-1]  # Eliminamos el ultimo caracter si es "
 
@@ -401,21 +406,21 @@ class SAR_Project:
         :param query: consulta a realizar
         :return: consulta en notacion de infijo NOT [Termino] OR [Termino]
         """
-        query = query.replace("(", "( ")
+        query = query.replace("(", "( ")  # Separamos los parentesis
         query = query.replace(")", " )")
-        query = query.split(" ")
-        ops = []
-        term = []
+        query = query.split(" ")  # Obtenemos los tokens separados por espacios en una lista
+        ops = []  # Lista para las operaciones
+        term = []  # Lista para los terminos
         for i in query:
-            if i not in ["NOT", "OR", "AND", "(", ")"]:
-                term.append(i)
-            elif term:
-                ops.append(term)
-                ops.append(i)
-                term = []
+            if i not in ["NOT", "OR", "AND", "(", ")"]:  # Si no es un operador
+                term.append(i)  # Lo añadimos a la lista de terminos
+            elif term:  # Si es un operador y la lista de terminos no esta vacia
+                ops.append(term)  # Añadimos a la lista de operaciones los terminos
+                ops.append(i)  # Añadimos a la lista de operadores el operador
+                term = []  # Reiniciamos la lista de terminos
             else:
-                ops.append(i)
-        if term: ops.append(term)
+                ops.append(i) # Si es un operador y esta vacia lo añadimos a la lista de operaciones
+        if term: ops.append(term) # Si aún hay terminos los añadimos a
         return ops
 
     def get_posting(self, terms, field='article'):
@@ -434,11 +439,11 @@ class SAR_Project:
 
         """
         stemming = terms[0]
-        if stemming:
+        if stemming: # Si se requiere stemming del termino:
             return self.get_stemming(terms[1], field)
-        elif "*" in terms[1] or "?" in terms[1]:
-            return self.get_permuterm(terms[1], field)
         elif len(terms)[1] > 1:
+            return self.get_permuterm(terms[1], field)
+        elif "*" in terms[1] or "?" in terms[1]:
             return self.get_positionals(terms[1], field)
         else:
             return self.index[field][terms[1][0]]
@@ -450,18 +455,18 @@ class SAR_Project:
         Metodo que recursivamente atraviesa el arbol de ngramas, obteniendo todos para todas las noticias.
         """
         for new in self.index[field][terms[terms_pos]]:
-            #Caso base: llegamos a un nodo raiz.
-            #Es el ultimo termino de la lista y sigue al anterior.
+            # Caso base: llegamos a un nodo raiz.
+            # Es el ultimo termino de la lista y sigue al anterior.
             if terms_pos == len(terms) - 1 and new[2] == new_pos - 1 and new[0] == new_id:
                 return positional_list + [new]
-            #Nos encontramos en el primer termino (nodos raiz).
-            #Se generan tantos arboles como noticias que contienen el primer termino existen.
+            # Nos encontramos en el primer termino (nodos raiz).
+            # Se generan tantos arboles como noticias que contienen el primer termino existen.
             elif terms_pos == 0:
                 self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, [new])
-            #Nodo intermedio, continuamos.
+            # Nodo intermedio, continuamos.
             elif new[0] == new_id and new[2] == new_pos - 1:
                 self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, positional_list + [new])
-        #No hay continuacion posible para la lista de terminos que buscamos en esta noticia. Devolvemos vacio.
+        # No hay continuacion posible para la lista de terminos que buscamos en esta noticia. Devolvemos vacio.
         return []
 
 
@@ -531,7 +536,7 @@ class SAR_Project:
         return: posting list con todos los newid exceptos los contenidos en p
 
         """
-        #Convertir la lista p a un set para mejorar el tiempo de busqueda, pasando de O(n) a O(1), siendo n, len(p).
+        # Convertir la lista p a un set para mejorar el tiempo de busqueda, pasando de O(n) a O(1), siendo n, len(p).
         p = set(p)
         reversed_posting_list = []
         for k in self.index['article'].keys():
@@ -555,10 +560,9 @@ class SAR_Project:
         return: posting list con los newid incluidos en p1 y p2
 
         """
-        # Presuponemos que las posting list estan ordenadas ascendientemente
         answer = []
-        p1c = [*p1]
-        p2c = [*p2]
+        p1c = sorted(p1)
+        p2c = sorted(p2)
         while p1c and p2c:
             if p1c[0] == p2c[0]:
                 answer.append(p1c[0])
@@ -569,9 +573,6 @@ class SAR_Project:
             else:
                 p2c.pop(0)
         return answer
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
 
 
 
@@ -588,10 +589,9 @@ class SAR_Project:
 
         """
         # Como se indica en el boletin, seguimos la estructura de "merge".
-        # Presuponemos que las posting list estan ordenadas ascendientemente
         answer = []
-        p1c = [*p1]
-        p2c = [*p2]
+        p1c = sorted(p1)
+        p2c = sorted(p2)
         while p1c and p2c:
             if p1c[0] == p2c[0]:
                 answer.append(p1c[0])
