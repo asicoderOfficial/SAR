@@ -49,8 +49,9 @@ class SAR_Project:
         self.show_snippet = False # valor por defecto, se cambia con self.set_snippet()
         self.use_stemming = False # valor por defecto, se cambia con self.set_stemming()
         self.use_ranking = False  # valor por defecto, se cambia con self.set_ranking()
-
-
+        self.fields = [("title", True), ("date", False),
+              ("keywords", True), ("article", True),
+              ("summary", True)]
     ###############################
     ###                         ###
     ###      CONFIGURACION      ###
@@ -283,6 +284,17 @@ class SAR_Project:
     ###                             ###
     ###################################
 
+    def mapquery(self, query):
+        if isinstance(query, list):  # Si son terminos
+            ft = self.format_terms(query)  # Los formateamos
+            terms = self.get_posting([ft[1], ft[2]], ft[0])  # Obtenemos sus posting list
+            lista = list(set(i[0] for i in terms))  # Nos quedamos con las noticias únicas
+            return lista
+
+        else:
+            return query
+
+
 
     def solve_query(self, query, prev={}):
         """
@@ -303,11 +315,10 @@ class SAR_Project:
         if query is None or len(query) == 0:
             return []
 
-        newquery = shunting_yard(infix_notation(query))  # Pasamos la query de a notación infija y la pasamos
+        newquery = self.shunting_yard(self.infix_notation(query))  # Pasamos la query de a notación infija y la pasamos
                                                          # al algoritmo shunting_yard para obtener la postfija
         operadores = []
-        newquery = list(map(lambda x: get_posting(format_terms(x)[2], format_terms(x)[0]) if isinstance(x, list)
-                            else x, newquery))  # Formateamos los términos de la lista y obtenemos sus posting list.
+        newquery = list(map(self.mapquery, newquery))  # Formateamos los términos de la lista y obtenemos sus posting list.
 
         i = 0
         while len(newquery) != 1: #Vamos a analizar hasta que obtengamos 1 lista resultado.
@@ -316,19 +327,19 @@ class SAR_Project:
                 operadores.append(token) #Añadimos a operadores y seguimos analizando
                 i += 1
             elif token == "NOT": #Si vemos una NOT, haremos reverse posting del ultimo elemento de la lista
-                newquery[i - 1] = reverse_posting(operadores.pop())
+                newquery[i - 1] = self.reverse_posting(operadores.pop())
                 newquery.pop(i)
                 operadores = [] #Volvemos a analizar
                 i = 0
             elif token == "AND" or token == "OR": #Si vemos una and o una or cogemos los ultimos 2
-                newquery[i] = and_posting(operadores.pop(), operadores.pop()) if token == "AND" \
-                    else or_posting(operadores.pop(), operadores.pop())
+                newquery[i] = self.and_posting(operadores.pop(), operadores.pop()) if token == "AND" \
+                    else self.or_posting(operadores.pop(), operadores.pop())
                 newquery.pop(i-2)
                 newquery.pop(i-2)
                 operadores = [] #Volvemos a analizar
                 i = 0
-
-        return newquery
+        print(len(newquery[0]))
+        return newquery[0]
 
     def shunting_yard(self, inputt):
         """
@@ -372,7 +383,7 @@ class SAR_Project:
         :return:  lista en formato: [campo, si aplicar o no stemming (1 si 0 no), [terminos]]
         """
         fterms = []  # Variable para almacenar los terminos formateados
-        multifield = [i[0] for i in fields] # Lista de campos
+        multifield = [i[0] for i in self.fields]  # Lista de campos
         fieldr = "article"  # Campo default
         if terms[0].find(":") != -1:  # Buscamos la primera aparaicion de : y asignamos el campo
                                       # a lo que haya a la izquierda
@@ -385,7 +396,7 @@ class SAR_Project:
             fterms.extend(terms[1:])  # Añadimos los elementos de
         if not fterms:  # Si no hay keywords
             fterms = [*terms]  # Copia
-        if self.use_stemming and fterms[0][0] == "\"":  # Si usamos stemming y el primer caracter es "
+        if self.use_stemming and fterms[0][0] == "\'":  # Si usamos stemming y el primer caracter es "
             result = [fieldr, 0, fterms]  # Añadimos al resultado el campo, 0 para representar que no se usa stemming
                                           # en estos los terminos
         elif self.use_stemming:  # Si usamos stemming y no se ha cumplido lo anterior, usamos 1 para representar que
@@ -393,8 +404,8 @@ class SAR_Project:
             result = [fieldr, 1, fterms]
         else:
             result = [fieldr, 0, fterms] # En cualquier otro caso no se usa stemming
-        fterms[0] = fterms[0][1:] if fterms[0][0] == "\"" else fterms[0]  # Eliminamos el primer caracter si es "
-        fterms[-1] = fterms[-1][:-1] if fterms[-1][-1] == "\"" else fterms[-1]  # Eliminamos el ultimo caracter si es "
+        fterms[0] = fterms[0][1:] if fterms[0][0] == "\'" else fterms[0]  # Eliminamos el primer caracter si es "
+        fterms[-1] = fterms[-1][:-1] if fterms[-1][-1] == "\'" else fterms[-1]  # Eliminamos el ultimo caracter si es "
 
         return result
 
@@ -439,9 +450,9 @@ class SAR_Project:
 
         """
         stemming = terms[0]
-        if stemming: # Si se requiere stemming del termino:
+        if stemming:  # Si se requiere stemming del termino:
             return self.get_stemming(terms[1], field)
-        elif len(terms)[1] > 1:
+        elif len(terms[1]) > 1:
             return self.get_positionals(terms[1], field)
         elif "*" in terms[1] or "?" in terms[1]:
             return self.get_permuterm(terms[1][0], field)
@@ -454,6 +465,8 @@ class SAR_Project:
         """
         Metodo que recursivamente atraviesa el arbol de ngramas, obteniendo todos para todas las noticias.
         """
+        if terms[terms_pos] not in self.index[field]:
+            return positional_list
         for new in self.index[field][terms[terms_pos]]:
             # Caso base: llegamos a un nodo raiz.
             # Es el ultimo termino de la lista y sigue al anterior.
@@ -577,17 +590,15 @@ class SAR_Project:
         """
         # Convertir la lista p a un set para mejorar el tiempo de busqueda, pasando de O(n) a O(1), siendo n, len(p).
         p = set(p)
-        reversed_posting_list = []
+        reversed_posting_list = set()
         for k in self.index['article'].keys():
             for new in self.index['article'][k]:
                 if new[0] not in p:
-                    reversed_posting_list.append(new[0])
+                    reversed_posting_list.add(new[0])
         
-        return reversed_posting_list
+        return list(reversed_posting_list)
 
-
-
-    def and_posting(self, p1 ,p2):
+    def and_posting(self,p1 ,p2):
         """
         NECESARIO PARA TODAS LAS VERSIONES
 
@@ -748,3 +759,29 @@ class SAR_Project:
         ###################################################
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE RANKING ##
         ###################################################
+
+def and_posting(p1, p2):
+        """
+        NECESARIO PARA TODAS LAS VERSIONES
+
+        Calcula el AND de dos posting list de forma EFICIENTE
+
+        param:  "p1", "p2": posting lists sobre las que calcular
+
+
+        return: posting list con los newid incluidos en p1 y p2
+
+        """
+        answer = []
+        p1c = sorted(p1, key=lambda x: x[1])
+        p2c = sorted(p2, key=lambda x: x[1])
+        while p1c and p2c:
+            if p1c[0][1] == p2c[0][1]:
+                answer.append(p1c[0])
+                p1c.pop(0)
+                p2c.pop(0)
+            elif p1c[0][1] < p2c[0][1]:
+                p1c.pop(0)
+            else:
+                p2c.pop(0)
+        return answer
