@@ -317,26 +317,26 @@ class SAR_Project:
 
         newquery = self.shunting_yard(self.infix_notation(query))  # Pasamos la query de a notación infija y la pasamos
                                                          # al algoritmo shunting_yard para obtener la postfija
-        operadores = []
+        operandos = []
         newquery = list(map(self.mapquery, newquery))  # Formateamos los términos de la lista y obtenemos sus posting list.
 
         i = 0
         while len(newquery) != 1: #Vamos a analizar hasta que obtengamos 1 lista resultado.
             token = newquery[i]
             if isinstance(token, list):
-                operadores.append(token) #Añadimos a operadores y seguimos analizando
+                operandos.append(token) #Añadimos a operandos y seguimos analizando
                 i += 1
             elif token == "NOT": #Si vemos una NOT, haremos reverse posting del ultimo elemento de la lista
-                newquery[i - 1] = self.reverse_posting(operadores.pop())
+                newquery[i - 1] = self.reverse_posting(operandos.pop())
                 newquery.pop(i)
-                operadores = [] #Volvemos a analizar
+                operandos = [] #Volvemos a analizar
                 i = 0
             elif token == "AND" or token == "OR": #Si vemos una and o una or cogemos los ultimos 2
-                newquery[i] = self.and_posting(operadores.pop(), operadores.pop()) if token == "AND" \
-                    else self.or_posting(operadores.pop(), operadores.pop())
+                newquery[i] = self.and_posting(operandos.pop(), operandos.pop()) if token == "AND" \
+                    else self.or_posting(operandos.pop(), operandos.pop())
                 newquery.pop(i-2)
                 newquery.pop(i-2)
-                operadores = [] #Volvemos a analizar
+                operandos = [] #Volvemos a analizar
                 i = 0
         print(len(newquery[0]))
         return newquery[0]
@@ -456,7 +456,7 @@ class SAR_Project:
         elif any(d for d in terms if any(ds in d for ds in ["*", "?"])):  # Usamos la función any porque solo requiere que aparezca 1 elemento
             return self.get_permuterm(terms, field)
         else:
-            return self.index[field][terms[0]]
+            return self.index[field][terms[0]] if terms[0] in self.index[field] else []
 
 
 
