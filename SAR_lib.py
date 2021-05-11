@@ -287,7 +287,7 @@ class SAR_Project:
     def mapquery(self, query):
         if isinstance(query, list):  # Si son terminos
             ft = self.format_terms(query)  # Los formateamos
-            terms = self.get_posting([ft[1], ft[2]], ft[0])  # Obtenemos sus posting list
+            terms = self.get_posting(ft[1], ft[0])  # Obtenemos sus posting list
             lista = list(set(i[0] for i in terms))  # Nos quedamos con las noticias únicas
             return lista
 
@@ -349,19 +349,19 @@ class SAR_Project:
         :param inputt: consulta en notacion de infijo
         :return: consulta en notación de postfijo
         """
-        stack = [] # Cola pperadores
+        stack = [] # Pila pperadores
         out = [] # Salida
-        ops = ["OR", "AND", "NOT"] # Operadores
-        precs = [1, 1, 2] # Precedencias, mayor valor mas precedencia
+        ops = ["OR", "AND", "NOT"]  # Operadores
+        precs = [1, 1, 2]  # Precedencias, mayor valor mas precedencia
         for token in inputt:
-            if isinstance(token, list): # Si es un operando
-                out.append(token) # A la salida
-            elif token in ops[:2]: # Si es un operador
+            if isinstance(token, list):  # Si es un operando
+                out.append(token)  # A la salida
+            elif token in ops[:2]:  # Si es un operador
                 prec = precs[ops.index(token)]  # Precedencia del token
                 while stack and stack[-1] not in ["("] and precs[ops.index(stack[-1])] >= prec:  # Precedencia de la cola mayor que el token
                     out.append(stack.pop()) # A la salida
-                stack.append(token) # A la cola de operadores
-            elif token == "NOT": # Si es un operador unario NOT, entonces no quitamos del stack.
+                stack.append(token)  # A la pila de operadores
+            elif token == "NOT":  # Si es un operador unario NOT, entonces no quitamos del stack.
                 stack.append(token)
             elif token == "(":
                 stack.append(token)
@@ -396,18 +396,10 @@ class SAR_Project:
             fterms.extend(terms[1:])  # Añadimos los elementos de
         if not fterms:  # Si no hay keywords
             fterms = [*terms]  # Copia
-        if self.use_stemming and fterms[0][0] == "\'":  # Si usamos stemming y el primer caracter es "
-            result = [fieldr, 0, fterms]  # Añadimos al resultado el campo, 0 para representar que no se usa stemming
-                                          # en estos los terminos
-        elif self.use_stemming:  # Si usamos stemming y no se ha cumplido lo anterior, usamos 1 para representar que
-                                 # sí se usa stemming
-            result = [fieldr, 1, fterms]
-        else:
-            result = [fieldr, 0, fterms] # En cualquier otro caso no se usa stemming
         fterms[0] = fterms[0][1:] if fterms[0][0] == "\'" else fterms[0]  # Eliminamos el primer caracter si es "
         fterms[-1] = fterms[-1][:-1] if fterms[-1][-1] == "\'" else fterms[-1]  # Eliminamos el ultimo caracter si es "
 
-        return result
+        return [fieldr, fterms]
 
     def infix_notation(self, query):
         """
@@ -444,20 +436,27 @@ class SAR_Project:
             - self.get_permuterm: para la ampliacion de permuterms
             - self.get_stemming: para la amplaicion de stemming
 
-        param:  "terms": lista con el primer elemento indicando si aplicamos o no stemming y sus terminos en otra
+        param:  "terms": lista con los términos
                 field: campo a buscar
         return: posting list
 
         """
-        stemming = terms[0]
-        if stemming:  # Si se requiere stemming del termino:
-            return self.get_stemming(terms[1], field)
-        elif len(terms[1]) > 1:
-            return self.get_positionals(terms[1], field)
-        elif "*" in terms[1] or "?" in terms[1]:
-            return self.get_permuterm(terms[1][0], field)
+        if self.use_stemming and len(terms) > 1:  # Si usamos stemming y hay varios terminos
+            stemming = 0  # False
+                                          # en estos los terminos
+        elif self.use_stemming:  # Si usamos stemming y no se ha cumplido lo anterior, usamos 1 para representar que
+                                 # sí se usa stemming
+            stemming = 1
         else:
-            return self.index[field][terms[1][0]]
+            stemming = 0  # En cualquier otro caso no se usa stemming
+        if stemming:  # Si se requiere stemming del termino:
+            return self.get_stemming(terms[0], field)
+        elif len(terms) > 1:
+            return self.get_positionals(terms, field)
+        elif any(d for d in terms if any(ds in d for ds in ["*", "?"])):  # Usamos la función any porque solo requiere que aparezca 1 elemento
+            return self.get_permuterm(terms, field)
+        else:
+            return self.index[field][terms[0]]
 
 
 
