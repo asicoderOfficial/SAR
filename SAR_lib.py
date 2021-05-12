@@ -399,7 +399,7 @@ class SAR_Project:
         fterms[0] = fterms[0][1:] if fterms[0][0] == "\'" else fterms[0]  # Eliminamos el primer caracter si es "
         fterms[-1] = fterms[-1][:-1] if fterms[-1][-1] == "\'" else fterms[-1]  # Eliminamos el ultimo caracter si es "
 
-        return [fieldr, fterms]
+        return [fieldr, [x.lower() for x in fterms]]
 
     def infix_notation(self, query):
         """
@@ -464,23 +464,23 @@ class SAR_Project:
         """
         Metodo que recursivamente atraviesa el arbol de ngramas, obteniendo todos para todas las noticias.
         """
+        result = []
         if terms[terms_pos] not in self.index[field]:
             return positional_list
         for new in self.index[field][terms[terms_pos]]:
             # Caso base: llegamos a un nodo raiz.
             # Es el ultimo termino de la lista y sigue al anterior.
-            if terms_pos == len(terms) - 1 and new[2] == new_pos - 1 and new[0] == new_id:
+            if terms_pos == len(terms) - 1 and new[2] == new_pos + 1 and new[0] == new_id:
                 return positional_list + [new]
             # Nos encontramos en el primer termino (nodos raiz).
             # Se generan tantos arboles como noticias que contienen el primer termino existen.
             elif terms_pos == 0:
-                self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, [new])
+                result.extend(self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, [new]))
             # Nodo intermedio, continuamos.
-            elif new[0] == new_id and new[2] == new_pos - 1:
-                self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, positional_list + [new])
-        # No hay continuacion posible para la lista de terminos que buscamos en esta noticia. Devolvemos vacio.
-        return []
-
+            elif new[0] == new_id and new[2] == new_pos + 1:
+                result.extend(self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, positional_list + [new]))
+        # No hay continuacion posible para la lista de terminos que buscamos en esta noticia. Devolvemos vacio
+        return result
 
     def get_positionals(self, terms, field='article'):
         """
@@ -495,7 +495,7 @@ class SAR_Project:
 
         """
         positionals = []
-        positionals += self.get_positionals_recursive(terms, 0, '', 0, field, positionals)
+        positionals = self.get_positionals_recursive(terms, 0, '', 0, field, positionals)
         return positionals
 
 
