@@ -2,7 +2,8 @@ import json
 from nltk.stem.snowball import SnowballStemmer
 import os
 import re
-
+import time
+import bisect
 class SAR_Project:
     """
     Prototipo de la clase para realizar la indexacion y la recuperacion de noticias
@@ -152,7 +153,9 @@ class SAR_Project:
                     fullname = os.path.join(dir, filename)
                     self.index_file(fullname, docid)
                     docid += 1
-
+        if self.use_stemming:
+            self.make_stemming()
+        self.make_permuterm()
         ##########################################
         ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
         ##########################################
@@ -234,11 +237,12 @@ class SAR_Project:
         self.stemmer.stem(token) devuelve el stem del token
 
         """
-        
-        pass
-        ####################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
-        ####################################################
+
+        for i in self.index.keys():
+            for j in self.index[i].keys():
+                self.sindex[self.stemmer.stem(j)] = j
+
+
 
 
     
@@ -249,7 +253,38 @@ class SAR_Project:
         Crea el indice permuterm (self.ptindex) para los terminos de todos los indices.
 
         """
-        pass
+        """
+        for i in self.index.keys():
+            if i not in self.ptindex:
+                self.ptindex[i] = []
+            for j in self.index[i].keys():
+                term = j
+                j = j+'$'
+                for k in range(len(j)):
+                    tupla = (j, term)
+                    self.ptindex[i].append(tupla)
+                    
+                    if j not in self.ptindex[i]:
+                        self.ptindex[i][j] = [term]
+                    else:
+                        self.ptindex[i][j] = self.ptindex[i][j].append(term)
+                        
+                    aux = j[1:]
+                    j = aux + j[0]
+                    
+            self.ptindex[i].sort(key=lambda x: x[0])
+        """
+        for i in self.index.keys():
+            self.ptindex[i] = {}
+            for j in self.index[i].keys():
+                term = j
+                self.ptindex[i][term] = []
+                j = j + '$'
+                for k in range(len(j)):
+                    self.ptindex[i][term].append(j)
+                    aux = j[1:]
+                    j = aux + j[0]
+
         ####################################################
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
         ####################################################
@@ -405,7 +440,8 @@ class SAR_Project:
         """
         Devuelve la consulta con notación de infijo.
         La consulta no debe tener los caracteres " y ( ) como terminos
-        Útil para ser convertido a notación de postfijo.
+        Útil para ser convertido a notación de postf
+        ....ppijo.
         :param query: consulta a realizar
         :return: consulta en notacion de infijo NOT [Termino] OR [Termino]
         """
@@ -452,7 +488,10 @@ class SAR_Project:
         if stemming:  # Si se requiere stemming del termino:
             return self.get_stemming(terms[0], field)
         elif len(terms) > 1:
-            return self.get_positionals(terms, field)
+            a = time.time()
+            pos = self.get_positionals(terms, field)
+            b = time.time()
+            return pos
         elif any(d for d in terms if any(ds in d for ds in ["*", "?"])):  # Usamos la función any porque solo requiere que aparezca 1 elemento
             return self.get_permuterm(terms, field)
         else:
@@ -516,12 +555,11 @@ class SAR_Project:
 
     def get_permuterm(self, term, field='article'):
         # Variable que nos servirá para controlar consultas con '?'
-        longitud = len(term)
 
         # Para buscar un permuterm, primero, hay que añadir el símbolo $ y rotar hasta que el comodín '?' o '*' esté al final
-        term = '$' + term
+        term = term[0] + '$'
         # Mientras que "*" o "?" no esté al final se rota
-        while (not (term[-1] == '*' or term[-1] == '?')):
+        while (term[-1] != '*' and term[-1] != '?'):
             term = term[-1] + term[:-1]
 
         # Ahora, la idea es seguir la regla: X * Y -> Y $ X*
@@ -532,13 +570,11 @@ class SAR_Project:
 
         # Si es un "?" se debe buscar aquellas palabras que tengan como prefijo Y, y tengan como sufijo X
         # PERO SOLO PUEDE HABER UNA LETRA EN MEDIO
-        final = term[-1]
 
         # Eliminamos el comodin del final
-        term = term[:-1]
-        posting_resultado = []
-        if final == '*':
-
+        result = []
+        if term[-1] == '*':
+            term = term[:-1]
             for key in self.ptindex[field]:
                 # Obtenemos la lista de permuterms
                 permuterms = self.ptindex[field][key]
@@ -548,7 +584,7 @@ class SAR_Project:
                     # Si el permuterm está dentro de la lista de permuterms, hemos encontrado una palabra que se corresponde a la wildcard
                     if term in permuterm:
                         # Vamos sumando las noticias en las que aparece
-                        posting_resultado = self.or_posting(posting_resultado, self.index[field][key])
+                        result = self.or_posting(result, self.index[field][key])
                         break
         else:
             # final == '?'
@@ -556,8 +592,9 @@ class SAR_Project:
             # En este caso, la wildcard '?' es más restrictiva, como hemos dicho antes,
             # solo puede haber una letra en medio, por lo tanto, hay que mirar si la palabra que vamos a buscarle
             # el permuterm, es de longitud igual al término original
+            term = term[:-1]
             for key in self.ptindex[field]:
-                if len(key) == longitud:
+                if len(key) == len(term):
 
                     # Obtenemos la lista de permuterms
                     permuterms = self.ptindex[field][key]
@@ -567,9 +604,9 @@ class SAR_Project:
                         # Si el permuterm está dentro de la lista de permuterms, hemos encontrado una palabra que se corresponde a la wildcard
                         if term in permuterm:
                             # Vamos sumando las noticias en las que aparece
-                            posting_resultado = self.or_posting(posting_resultado, self.index[field][key])
+                            result = self.or_posting(result, self.index[field][key])
                             break
-        return posting_resultado
+        return result
 
 
 
@@ -597,7 +634,7 @@ class SAR_Project:
         
         return list(reversed_posting_list)
 
-    def and_posting(self,p1 ,p2):
+    def and_posting(self, p1, p2):
         """
         NECESARIO PARA TODAS LAS VERSIONES
 
@@ -610,6 +647,14 @@ class SAR_Project:
 
         """
         answer = []
+        """
+        if p1 and isinstance(p1,tuple) or p2 and isinstance(p2,tuple):
+            p1c = sorted([i[0] for i in p1])
+            p2c = sorted([i[0] for i in p1])
+        else:
+            p1c = sorted(p1)
+            p2c = sorted(p2)
+        """
         p1c = sorted(p1)
         p2c = sorted(p2)
         while p1c and p2c:
@@ -639,6 +684,14 @@ class SAR_Project:
         """
         # Como se indica en el boletin, seguimos la estructura de "merge".
         answer = []
+        """
+        if p1 and isinstance(p1[0],tuple) or p2 and isinstance(p2[0],tuple):
+            p1c = sorted([i[0] for i in p1])
+            p2c = sorted([i[0] for i in p2])
+        else:
+            p1c = sorted(p1)
+            p2c = sorted(p2)
+        """
         p1c = sorted(p1)
         p2c = sorted(p2)
         while p1c and p2c:
