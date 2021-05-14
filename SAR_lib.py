@@ -208,7 +208,7 @@ class SAR_Project:
         with open(filename) as fh:
             jlist = json.load(fh)
 
-        fields = self.index.keys()
+        fields = [f[0] for f in self.fields]
         for new in jlist:
             for field in fields:
                 self.fill_posting_list(new, field)
