@@ -173,7 +173,7 @@ class SAR_Project:
 
         if field == 'date':
             #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
-            self.index[field][new['date']][new['id']] = []
+            self.index[field] = {new['date']:{new['id']:[]}}
         else:
             #Tokenizamos y guardamos las posiciones de cada token, empezando por 1.
             content = self.tokenize(new[field])
