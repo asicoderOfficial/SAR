@@ -152,6 +152,7 @@ class SAR_Project:
                 if filename.endswith('.json'):
                     fullname = os.path.join(dir, filename)
                     self.index_file(fullname, docid)
+                    self.docs[docid] = filename
                     docid += 1
         if self.use_stemming:
             self.make_stemming()
@@ -161,18 +162,28 @@ class SAR_Project:
         ##########################################
         
 
-    def fill_posting_list(self, new, index_key, docid):
-        content = new['date'] if index_key == 'date' else self.tokenize(new[index_key])
-        pos = 1
-        for token in content:
-            if token not in self.index[index_key]:
-                self.index[index_key][token] = [(new['id'], docid, pos)]
-            else:
-                self.index[index_key][token] += [(new['id'], docid, pos)]
-            pos += 1
+    def fill_posting_list(self, new, field):
+        """
+        Metodo para rellenar la posting list correspondiente a cada termino.
+        El formato del indice es el siguiente:
+        self.index = {field:{token:{new_id,[position1,position2,…]}}}
+        """
+        if field == 'date':
+            #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
+            self.index[field][new['date']][new['id']] = []
+        else:
+            #Tokenizamos y guardamos las posiciones de cada token, empezando por 1.
+            content = self.tokenize(new[field])
+            pos = 1
+            for token in content:
+                if token not in self.index[field]:
+                    self.index[field][token][new['id']] = [pos]
+                else:
+                    self.index[field][token][new['id']] += [pos]
+                pos += 1
         
 
-    def index_file(self, filename, docid):
+    def index_file(self, filename):
         """
         NECESARIO PARA TODAS LAS VERSIONES
 
@@ -191,10 +202,10 @@ class SAR_Project:
         with open(filename) as fh:
             jlist = json.load(fh)
 
-        index_keys = self.index.keys()
+        fields = self.index.keys()
         for new in jlist:
-            for curr_index_key in index_keys:
-                self.fill_posting_list(new, curr_index_key, docid)
+            for field in fields:
+                self.fill_posting_list(new, field)
 
 
         #

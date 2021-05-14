@@ -2,6 +2,7 @@
 # Ommit data.
 2015/
 2016/
+*.bin
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
