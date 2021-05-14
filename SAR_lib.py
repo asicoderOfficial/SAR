@@ -151,7 +151,7 @@ class SAR_Project:
             for filename in files:
                 if filename.endswith('.json'):
                     fullname = os.path.join(dir, filename)
-                    self.index_file(fullname, docid)
+                    self.index_file(fullname)
                     self.docs[docid] = filename
                     docid += 1
         if self.use_stemming:
@@ -168,6 +168,9 @@ class SAR_Project:
         El formato del indice es el siguiente:
         self.index = {field:{token:{new_id,[position1,position2,…]}}}
         """
+        for f in self.fields:
+            self.index[f] = {}
+
         if field == 'date':
             #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
             self.index[field][new['date']][new['id']] = []
@@ -177,9 +180,12 @@ class SAR_Project:
             pos = 1
             for token in content:
                 if token not in self.index[field]:
-                    self.index[field][token][new['id']] = [pos]
+                    self.index[field][token] = {new['id']:[pos]}
                 else:
-                    self.index[field][token][new['id']] += [pos]
+                    if new['id'] not in self.index[field][token]:
+                        self.index[field][token][new['id']] = [pos]
+                    else:
+                        self.index[field][token][new['id']] += [pos]
                 pos += 1
         
 
@@ -562,7 +568,9 @@ class SAR_Project:
 
         """
         stem = self.stemmer.stem(term)
+        tokens = self.sindex[stem]
         return [self.index[field][curr_term] for curr_term in self.index[field].keys() if stem in term]
+
 
     def get_permuterm(self, term, field='article'):
         # Variable que nos servirá para controlar consultas con '?'
@@ -724,10 +732,6 @@ class SAR_Project:
             p2c.pop(0)
         return answer
         
-        pass
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
 
 
     def minus_posting(self, p1, p2):
