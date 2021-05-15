@@ -340,7 +340,7 @@ class SAR_Project:
         if isinstance(query, list):  # Si son terminos
             ft = self.format_terms(query)  # Los formateamos
             terms = self.get_posting(ft[1], ft[0])  # Obtenemos sus posting list
-            lista = list(set(i[0] for i in terms))  # Nos quedamos con las noticias únicas
+            lista = list(set(i for i in terms))  # Nos quedamos con las noticias únicas
             return lista
 
         else:
@@ -453,6 +453,12 @@ class SAR_Project:
 
         return [fieldr, [x.lower() for x in fterms]]
 
+    def make_posting_list(self, p):
+        """
+        Crea una lista con el elemento y sus posiciones. [Key,pos]
+        """
+        pass
+
     def infix_notation(self, query):
         """
         Devuelve la consulta con notación de infijo.
@@ -512,7 +518,7 @@ class SAR_Project:
         elif any(d for d in terms if any(ds in d for ds in ["*", "?"])):  # Usamos la función any porque solo requiere que aparezca 1 elemento
             return self.get_permuterm(terms, field)
         else:
-            return self.index[field][terms[0]] if terms[0] in self.index[field] else []
+            return self.index[field][terms[0]].keys() if terms[0] in self.index[field] else []
 
 
 
@@ -573,25 +579,12 @@ class SAR_Project:
 
 
     def get_permuterm(self, term, field='article'):
-        # Variable que nos servirá para controlar consultas con '?'
-
-        # Para buscar un permuterm, primero, hay que añadir el símbolo $ y rotar hasta que el comodín '?' o '*' esté al final
         term = term[0] + '$'
-        # Mientras que "*" o "?" no esté al final se rota
-        while (term[-1] != '*' and term[-1] != '?'):
+        while term[-1] != '*' and term[-1] != '?':
             term = term[-1] + term[:-1]
 
-        # Ahora, la idea es seguir la regla: X * Y -> Y $ X*
-        # Hay que matizar 2 casos:
-
-        # Si es un "*" se debe buscar aquellas palabras que tengan como prefijo Y, y tengan como sufijo X
-        # Y PUEDEN HABER TANTAS LETRAS EN MEDIO COMO QUIERA
-
-        # Si es un "?" se debe buscar aquellas palabras que tengan como prefijo Y, y tengan como sufijo X
-        # PERO SOLO PUEDE HABER UNA LETRA EN MEDIO
-
-        # Eliminamos el comodin del final
         result = []
+
         if term[-1] == '*':
             term = term[:-1]
             for key in self.ptindex[field]:
@@ -599,32 +592,25 @@ class SAR_Project:
                 permuterms = self.ptindex[field][key]
 
                 for permuterm in permuterms:
-
-                    # Si el permuterm está dentro de la lista de permuterms, hemos encontrado una palabra que se corresponde a la wildcard
-                    if term in permuterm:
-                        # Vamos sumando las noticias en las que aparece
-                        result = self.or_posting(result, self.index[field][key])
-                        break
+                    i = 0
+                    end = False
+                    while i < len(permuterms) and not end:
+                        if term in permuterm:
+                            result = self.or_posting(result, self.index[field][key])
+                            end = True
+                        i = i+1
         else:
-            # final == '?'
-
-            # En este caso, la wildcard '?' es más restrictiva, como hemos dicho antes,
-            # solo puede haber una letra en medio, por lo tanto, hay que mirar si la palabra que vamos a buscarle
-            # el permuterm, es de longitud igual al término original
             term = term[:-1]
             for key in self.ptindex[field]:
                 if len(key) == len(term):
-
-                    # Obtenemos la lista de permuterms
                     permuterms = self.ptindex[field][key]
-
-                    for permuterm in permuterms:
-
-                        # Si el permuterm está dentro de la lista de permuterms, hemos encontrado una palabra que se corresponde a la wildcard
+                    i=0
+                    end = False
+                    while i < len(permuterms) and not end:
                         if term in permuterm:
-                            # Vamos sumando las noticias en las que aparece
                             result = self.or_posting(result, self.index[field][key])
-                            break
+                            end = True
+                        i = i+1
         return result
 
 
@@ -643,13 +629,13 @@ class SAR_Project:
         return: posting list con todos los newid exceptos los contenidos en p
 
         """
-        # Convertir la lista p a un set para mejorar el tiempo de busqueda, pasando de O(n) a O(1), siendo n, len(p).
-        p = set(p)
+        # Convertir la lista p a un set para mejorar el tiempo de busqueda.
+        p1 = set(p.keys()) if isinstance(p, dict) else set(p)
         reversed_posting_list = set()
         for k in self.index['article'].keys():
             for new in self.index['article'][k]:
-                if new[0] not in p:
-                    reversed_posting_list.add(new[0])
+                if new not in p1:
+                    reversed_posting_list.add(new)
         
         return list(reversed_posting_list)
 
@@ -659,7 +645,7 @@ class SAR_Project:
 
         Calcula el AND de dos posting list de forma EFICIENTE
 
-        param:  "p1", "p2": posting lists sobre las que calcular
+        param:  "p1", "p2": posting lists sobre las que calcular (diccionario)
 
 
         return: posting list con los newid incluidos en p1 y p2
@@ -674,8 +660,9 @@ class SAR_Project:
             p1c = sorted(p1)
             p2c = sorted(p2)
         """
-        p1c = sorted(p1)
-        p2c = sorted(p2)
+        p1c = sorted(list(p1.keys())) if isinstance(p1, dict) else sorted(p1)
+        p2c = sorted(list(p2.keys())) if isinstance(p2, dict) else sorted(p2)
+
         while p1c and p2c:
             if p1c[0] == p2c[0]:
                 answer.append(p1c[0])
@@ -711,8 +698,8 @@ class SAR_Project:
             p1c = sorted(p1)
             p2c = sorted(p2)
         """
-        p1c = sorted(p1)
-        p2c = sorted(p2)
+        p1c = sorted(list(p1.keys())) if isinstance(p1, dict) else sorted(p1)
+        p2c = sorted(list(p2.keys())) if isinstance(p2, dict) else sorted(p2)
         while p1c and p2c:
             if p1c[0] == p2c[0]:
                 answer.append(p1c[0])
