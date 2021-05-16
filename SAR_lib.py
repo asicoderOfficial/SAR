@@ -340,7 +340,7 @@ class SAR_Project:
         if isinstance(query, list):  # Si son terminos
             ft = self.format_terms(query)  # Los formateamos
             terms = self.get_posting(ft[1], ft[0])  # Obtenemos sus posting list
-            lista = list(set(i for i in terms))  # Nos quedamos con las noticias únicas
+            lista = list(set(i for i in sorted(terms)))  # Nos quedamos con las noticias únicas
             return lista
 
         else:
@@ -596,7 +596,7 @@ class SAR_Project:
                     end = False
                     while i < len(permuterms) and not end:
                         if term in permuterm:
-                            result = self.or_posting(result, self.index[field][key])
+                            result = self.or_posting(result, sorted(self.index[field][key].keys()))
                             end = True
                         i = i+1
         else:
@@ -608,7 +608,7 @@ class SAR_Project:
                     end = False
                     while i < len(permuterms) and not end:
                         if term in permuterm:
-                            result = self.or_posting(result, self.index[field][key])
+                            result = self.or_posting(result, sorted(self.index[field][key].keys()))
                             end = True
                         i = i+1
         return result
@@ -698,8 +698,10 @@ class SAR_Project:
             p1c = sorted(p1)
             p2c = sorted(p2)
         """
-        p1c = sorted(list(p1.keys())) if isinstance(p1, dict) else sorted(p1)
-        p2c = sorted(list(p2.keys())) if isinstance(p2, dict) else sorted(p2)
+        #p1c = sorted(list(p1.keys())) if isinstance(p1, dict) else sorted(p1)
+        #p2c = sorted(list(p2.keys())) if isinstance(p2, dict) else sorted(p2)
+        p1c = list(p1.keys()) if isinstance(p1, dict) else [*p1]
+        p2c = list(p2.keys()) if isinstance(p2, dict) else [*p2]
         while p1c and p2c:
             if p1c[0] == p2c[0]:
                 answer.append(p1c[0])
@@ -827,8 +829,8 @@ def and_posting(p1, p2):
 
         """
         answer = []
-        p1c = sorted(p1, key=lambda x: x[1])
-        p2c = sorted(p2, key=lambda x: x[1])
+        p1c = list(p1.keys()) if isinstance(p1, dict) else [*p1]
+        p2c = list(p2.keys()) if isinstance(p2, dict) else [*p2]
         while p1c and p2c:
             if p1c[0][1] == p2c[0][1]:
                 answer.append(p1c[0])
