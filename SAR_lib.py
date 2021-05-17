@@ -50,9 +50,6 @@ class SAR_Project:
         self.show_snippet = False # valor por defecto, se cambia con self.set_snippet()
         self.use_stemming = False # valor por defecto, se cambia con self.set_stemming()
         self.use_ranking = False  # valor por defecto, se cambia con self.set_ranking()
-        self.fields = [("title", True), ("date", False),
-              ("keywords", True), ("article", True),
-              ("summary", True)]
     ###############################
     ###                         ###
     ###      CONFIGURACION      ###
@@ -168,7 +165,7 @@ class SAR_Project:
         El formato del indice es el siguiente:
         self.index = {field:{token:{new_id,[position1,position2,…]}}}
         """
-        for f in self.fields:
+        for f in SAR_Project.fields:
             self.index[f] = {}
 
         if field == 'date':
@@ -340,7 +337,7 @@ class SAR_Project:
         if isinstance(query, list):  # Si son terminos
             ft = self.format_terms(query)  # Los formateamos
             terms = self.get_posting(ft[1], ft[0])  # Obtenemos sus posting list
-            lista = list(set(i for i in sorted(terms)))  # Nos quedamos con las noticias únicas
+            lista = sorted(list(set(i for i in terms)))  # Nos quedamos con las noticias únicas
             return lista
 
         else:
@@ -432,10 +429,10 @@ class SAR_Project:
         Elimina los caracteres " y las palabras clave keywords:, title: etc para dejar los términos en una lista.
         Si contiene keywords, title... será incluido al principio de la lista.
         :param term: lista con los terminos
-        :return:  lista en formato: [campo, si aplicar o no stemming (1 si 0 no), [terminos]]
+        :return:  lista en formato: [campo, [terminos]]
         """
         fterms = []  # Variable para almacenar los terminos formateados
-        multifield = [i[0] for i in self.fields]  # Lista de campos
+        multifield = [i[0] for i in SAR_Project.fields]  # Lista de campos
         fieldr = "article"  # Campo default
         if terms[0].find(":") != -1:  # Buscamos la primera aparaicion de : y asignamos el campo
                                       # a lo que haya a la izquierda
@@ -579,6 +576,8 @@ class SAR_Project:
 
 
     def get_permuterm(self, term, field='article'):
+        if self.use_stemming:
+            
         term = term[0] + '$'
         while term[-1] != '*' and term[-1] != '?':
             term = term[-1] + term[:-1]
@@ -588,17 +587,14 @@ class SAR_Project:
         if term[-1] == '*':
             term = term[:-1]
             for key in self.ptindex[field]:
-                # Obtenemos la lista de permuterms
                 permuterms = self.ptindex[field][key]
-
-                for permuterm in permuterms:
-                    i = 0
-                    end = False
-                    while i < len(permuterms) and not end:
-                        if term in permuterm:
-                            result = self.or_posting(result, sorted(self.index[field][key].keys()))
-                            end = True
-                        i = i+1
+                i = 0
+                end = False
+                while i < len(permuterms) and not end:
+                    if term in permuterms[i]:
+                        result = self.or_posting(result, sorted(self.index[field][key].keys()))
+                        end = True
+                    i = i+1
         else:
             term = term[:-1]
             for key in self.ptindex[field]:
@@ -607,7 +603,7 @@ class SAR_Project:
                     i=0
                     end = False
                     while i < len(permuterms) and not end:
-                        if term in permuterm:
+                        if term in permuterms[i]:
                             result = self.or_posting(result, sorted(self.index[field][key].keys()))
                             end = True
                         i = i+1
@@ -660,8 +656,8 @@ class SAR_Project:
             p1c = sorted(p1)
             p2c = sorted(p2)
         """
-        p1c = sorted(list(p1.keys())) if isinstance(p1, dict) else sorted(p1)
-        p2c = sorted(list(p2.keys())) if isinstance(p2, dict) else sorted(p2)
+        p1c = list(p1.keys()) if isinstance(p1, dict) else [*p1]
+        p2c = list(p2.keys()) if isinstance(p2, dict) else [*p2]
 
         while p1c and p2c:
             if p1c[0] == p2c[0]:
