@@ -166,7 +166,7 @@ class SAR_Project:
         self.index = {field:{token:{new_id,[position1,position2,…]}}}
         """
         for f in SAR_Project.fields:
-            self.index[f] = {}
+            self.index[f[0]] = {}
 
         if field == 'date':
             #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
@@ -567,12 +567,8 @@ class SAR_Project:
 
 
     def get_permuterm(self, term, field='article'):
-<<<<<<< HEAD
         if self.use_stemming:
             term = term[0] + '$'
-=======
-        term = term[0] + '$'
->>>>>>> d19ba1ae542b44adf050071675b0c40144e1543e
         while term[-1] != '*' and term[-1] != '?':
             term = term[-1] + term[:-1]
 
