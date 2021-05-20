@@ -595,8 +595,7 @@ class SAR_Project:
 
 
     def get_permuterm(self, term, field='article'):
-        if self.use_stemming:
-            term = term[0] + '$'
+        term = term[0] + '$'
         while term[-1] != '*' and term[-1] != '?':
             term = term[-1] + term[:-1]
 
