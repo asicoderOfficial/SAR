@@ -154,6 +154,7 @@ class SAR_Project:
         if self.use_stemming:
             self.make_stemming()
         self.make_permuterm()
+        print(self.index)
         ##########################################
         ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
         ##########################################
@@ -210,7 +211,6 @@ class SAR_Project:
             for field in fields:
                 self.fill_posting_list(new, field)
         print(self.index)
-
         #
         # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
         # cada noticia es un diccionario con los campos:
@@ -591,7 +591,7 @@ class SAR_Project:
         """
         stem = self.stemmer.stem(term)
         tokens = self.sindex[stem]
-        return [self.index[field][curr_term] for curr_term in self.index[field].keys() if stem in term]
+        return [self.index[field][curr_term][t] for t in tokens]
 
 
     def get_permuterm(self, term, field='article'):
@@ -600,7 +600,6 @@ class SAR_Project:
             term = term[-1] + term[:-1]
 
         result = []
-
         if term[-1] == '*':
             term = term[:-1]
             for key in self.ptindex[field]:
@@ -658,21 +657,12 @@ class SAR_Project:
 
         Calcula el AND de dos posting list de forma EFICIENTE
 
-        param:  "p1", "p2": posting lists sobre las que calcular (diccionario)
-
+        param:  "p1", "p2": posting lists sobre las que calcular (diccionario o lista con id de las noticias)
 
         return: posting list con los newid incluidos en p1 y p2
 
         """
         answer = []
-        """
-        if p1 and isinstance(p1,tuple) or p2 and isinstance(p2,tuple):
-            p1c = sorted([i[0] for i in p1])
-            p2c = sorted([i[0] for i in p1])
-        else:
-            p1c = sorted(p1)
-            p2c = sorted(p2)
-        """
         p1c = list(p1.keys()) if isinstance(p1, dict) else [*p1]
         p2c = list(p2.keys()) if isinstance(p2, dict) else [*p2]
 
@@ -695,7 +685,7 @@ class SAR_Project:
 
         Calcula el OR de dos posting list de forma EFICIENTE
 
-        param:  "p1", "p2": posting lists sobre las que calcular
+        param:  "p1", "p2": posting lists sobre las que calcular (diccionario o lista con id de las noticias)
 
 
         return: posting list con los newid incluidos de p1 o p2
@@ -703,16 +693,6 @@ class SAR_Project:
         """
         # Como se indica en el boletin, seguimos la estructura de "merge".
         answer = []
-        """
-        if p1 and isinstance(p1[0],tuple) or p2 and isinstance(p2[0],tuple):
-            p1c = sorted([i[0] for i in p1])
-            p2c = sorted([i[0] for i in p2])
-        else:
-            p1c = sorted(p1)
-            p2c = sorted(p2)
-        """
-        #p1c = sorted(list(p1.keys())) if isinstance(p1, dict) else sorted(p1)
-        #p2c = sorted(list(p2.keys())) if isinstance(p2, dict) else sorted(p2)
         p1c = list(p1.keys()) if isinstance(p1, dict) else [*p1]
         p2c = list(p2.keys()) if isinstance(p2, dict) else [*p2]
         while p1c and p2c:
