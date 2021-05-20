@@ -166,11 +166,11 @@ class SAR_Project:
         self.index = {field:{token:{new_id,[position1,position2,…]}}}
         """
         for f in SAR_Project.fields:
-            self.index[f] = {}
+            self.index[f[0]] = {}
 
         if field == 'date':
             #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
-            self.index[field] = {new['date']:{new['id']:[]}}
+            self.index[field]['date'] = {new['id']:[]}
         else:
             #Tokenizamos y guardamos las posiciones de cada token, empezando por 1.
             content = self.tokenize(new[field])
@@ -209,7 +209,7 @@ class SAR_Project:
         for new in jlist:
             for field in fields:
                 self.fill_posting_list(new, field)
-
+        print(self.index)
 
         #
         # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
@@ -418,6 +418,7 @@ class SAR_Project:
         print(len(newquery[0]))
         return newquery[0]
 
+
     def shunting_yard(self, inputt):
         """
         Convierte una cadena en notación de postfijo (Fácilmente analizable) usando el algoritmo shunting_yard
@@ -525,23 +526,13 @@ class SAR_Project:
         return: posting list
 
         """
-        if self.use_stemming and len(terms) > 1:  # Si usamos stemming y hay varios terminos
-            stemming = 0  # False
-                                          # en estos los terminos
-        elif self.use_stemming:  # Si usamos stemming y no se ha cumplido lo anterior, usamos 1 para representar que
-                                 # sí se usa stemming
-            stemming = 1
-        else:
-            stemming = 0  # En cualquier otro caso no se usa stemming
-        if stemming:  # Si se requiere stemming del termino:
-            return self.get_stemming(terms[0], field)
-        elif len(terms) > 1:
-            a = time.time()
-            pos = self.get_positionals(terms, field)
-            b = time.time()
-            return pos
-        elif any(d for d in terms if any(ds in d for ds in ["*", "?"])):  # Usamos la función any porque solo requiere que aparezca 1 elemento
+        if any(d for d in terms if any(ds in d for ds in ["*", "?"])):# Usamos la función any porque solo requiere que aparezca 1 elemento
             return self.get_permuterm(terms, field)
+        elif len(terms) > 1:
+            pos = self.get_positionals(terms, field)
+            return pos
+        elif self.use_stemming:  # Si se requiere stemming del termino:
+            return self.get_stemming(terms[0], field)
         else:
             return self.index[field][terms[0]].keys() if terms[0] in self.index[field] else []
 
@@ -605,8 +596,7 @@ class SAR_Project:
 
     def get_permuterm(self, term, field='article'):
         if self.use_stemming:
-            
-        term = term[0] + '$'
+            term = term[0] + '$'
         while term[-1] != '*' and term[-1] != '?':
             term = term[-1] + term[:-1]
 
