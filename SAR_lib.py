@@ -312,11 +312,39 @@ class SAR_Project:
         
         Muestra estadisticas de los indices
         
-        """
-        pass
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
+        """ 
+        print('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-')
+
+        print('Number of indexed days: '+ str(len(self.docs)))
+
+        print('----------------------------------------')
+    
+        print('Number of indexed news: ' + str(len(self.news)))
+
+        print('----------------------------------------')
+
+        print('TOKENS:')
+
+        for a in self.index.keys():
+            print("\t# of tokens in '{}': {}".format(a, len(self.index[a])))
+        print('----------------------------------------')
+        if (self.permuterm):
+            print('PERMUTERMS:')
+            for b in self.ptindex.keys():
+                 print("\t# of tokens in '{}': {}".format(b, len(self.ptindex[b])))
+            print('----------------------------------------')
+        if (self.stemming):
+            print('STEMS:')
+            for c in self.sindex.keys():
+                 print("\t# of tokens in '{}': {}".format(c, len(self.sindex[c])))
+            print('----------------------------------------')
+        if (self.positional):
+            print('Positional queries are allowed')
+        
+        else:
+            print(print('Positional queries are NOT allowed'))
+
+        print('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-')
 
         
 
@@ -781,6 +809,7 @@ class SAR_Project:
         return: el numero de noticias recuperadas, para la opcion -T
         
         """
+        #Resolvemos la query y en caso de que se aplique ranking aplicamos para las noticias resultantes.
         result = self.solve_query(query)
         if self.use_ranking:
             result = self.rank_result(result, query)   
@@ -806,7 +835,20 @@ class SAR_Project:
 
         """
 
-        pass
+        #Lista de términos de la query
+        t = {}
+
+        for a in query.keys():
+
+            term = a[0]
+
+            field = a[1]
+
+            #Ahora cabe buscar si la consulta ha usado stemming o si se trata de consulta permuterm
+
+
+
+            pass
         
         ###################################################
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE RANKING ##
