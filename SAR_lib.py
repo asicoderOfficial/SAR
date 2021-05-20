@@ -4,6 +4,7 @@ import os
 import re
 import time
 import bisect
+import math
 class SAR_Project:
     """
     Prototipo de la clase para realizar la indexacion y la recuperacion de noticias
@@ -46,6 +47,9 @@ class SAR_Project:
         self.news = {} # hash de noticias --> clave entero (newid), valor: la info necesaria para diferenciar la noticia dentro de su fichero (doc_id y posiciÃ³n dentro del documento)
         self.tokenizer = re.compile("\W+") # expresion regular para hacer la tokenizacion
         self.stemmer = SnowballStemmer('spanish') # stemmer en castellano
+        self.weight_noti = {} #Hash para pesados usado en rank_result.
+        self.perterms = {} #Hash para permuterm. La clave es el permuterm y el valor es la lista de términos de ese permuterm. 
+        self.stemterms = {} #Hash para stemming. La clave es el stem y el valor es la lista de términos asociados a ese stem.
         self.show_all = False # valor por defecto, se cambia con self.set_showall()
         self.show_snippet = False # valor por defecto, se cambia con self.set_snippet()
         self.use_stemming = False # valor por defecto, se cambia con self.set_stemming()
@@ -825,7 +829,7 @@ class SAR_Project:
 
         """
 
-        #Lista de términos de la query
+        #Términos de la query
         t = {}
 
         for a in query.keys():
@@ -834,9 +838,60 @@ class SAR_Project:
 
             field = a[1]
 
-            #Ahora cabe buscar si la consulta ha usado stemming o si se trata de consulta permuterm
+            #Ahora cabe buscar si se ha usado stemming o si se trata de consulta permuterm
+            if (self.use_stemming):
+                tt = self.stemterms[self.stemmer.stem(term)] 
+                for t1 in tt:
+                    t.setdefault(t1,field)
+            
+            #En caso de consulta permuterm
 
+            elif ("?" in term or "*" in term):
+                permuterms = self.get_permuterm(term,field)
 
+                for elemento in permuterms:
+                    aux = self.perterms[elemento]
+                    for  t2 in aux:
+                        t.setdefault(t2,field)
+            
+            else:
+                t.setdefault(term,field)
+            
+        #Declaramos lista de pesados para las noticias
+            Masquepesados = []
+
+        #Por cada noticia en el resultado...
+        for noticia in result:
+
+            #Por cada término y campo (Pues hay que calcular una por una para todas la noticias) usando las calculadas anteriormente.
+            for tpla in t:
+
+                term = tpla[0]
+
+                field = tpla[1]
+
+            #Para el pesado usaremos el explicado en el tema 4 de teoría.
+
+                #1er paso: Pesado del término
+                tf = 0
+                ft = self.weight[field][term].get(noticia,0)
+
+                if ft > 0:
+                    tf = math.log10(ft)
+                
+                #2do paso: Función global idf
+                df = len(self.weight[field][term])
+                idf = math.log10(self.news/df)
+
+                #3er paso: Acumular el pesado de cada término para obtener el total de la noticia
+                pesado_noticia = pesado_noticia + (tf*idf)
+
+            #Añadir los pesados sobre cada noticia
+            self.weight_noti[noticia] = self.weight_noti.get(noticia,0) + pesado_noticia
+            Masquepesados.append(pesado_noticia)
+            
+            #Para finalizar, antes de devolver la lista, se ordena según el ranking de noticias.
+            res = [i for _,i in sorted(zip(Masquepesados,result), reverse = True) ]
 
             pass
         
