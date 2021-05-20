@@ -170,7 +170,7 @@ class SAR_Project:
 
         if field == 'date':
             #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
-            self.index[field] = {new['date']:{new['id']:[]}}
+            self.index[field]['date'] = {new['id']:[]}
         else:
             #Tokenizamos y guardamos las posiciones de cada token, empezando por 1.
             content = self.tokenize(new[field])
@@ -209,7 +209,7 @@ class SAR_Project:
         for new in jlist:
             for field in fields:
                 self.fill_posting_list(new, field)
-
+        print(self.index)
 
         #
         # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
@@ -389,6 +389,7 @@ class SAR_Project:
                 i = 0
         print(len(newquery[0]))
         return newquery[0]
+
 
     def shunting_yard(self, inputt):
         """
@@ -577,8 +578,7 @@ class SAR_Project:
 
     def get_permuterm(self, term, field='article'):
         if self.use_stemming:
-            
-        term = term[0] + '$'
+            term = term[0] + '$'
         while term[-1] != '*' and term[-1] != '?':
             term = term[-1] + term[:-1]
 
