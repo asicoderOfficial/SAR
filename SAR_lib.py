@@ -966,9 +966,9 @@ class SAR_Project:
                         a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
                     if id1 > 2 and id1 < len(cuerpoST) + 2:
                         a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id1 + 2]) + "[...]"
-
-            print("Snippet: {} ".format(a_devolver_snippet))
-            print("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-")
+            if self.show_snippet:
+                print("Snippet: {} ".format(a_devolver_snippet))
+                print("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-")
         return len(result)
 
 
