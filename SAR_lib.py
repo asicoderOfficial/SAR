@@ -456,7 +456,7 @@ class SAR_Project:
                 newquery.pop(i-2)
                 operandos = [] #Volvemos a analizar
                 i = 0
-                
+        print(len(newquery[0]))
         return newquery[0]
 
 
@@ -593,22 +593,7 @@ class SAR_Project:
         return: posting list
 
         """
-        #Obtenemos todas las noticias en las que aparece cada termino, con su correspondiente posting list.
-        #Filtramos, nos quedamos con las noticias comunes a todos los terminos en el campo seleccionado.
-        common_news = self.index[field][terms[0]]
-        for curr_term in terms[1:]:
-            common_news = self.and_posting(common_news, self.index[field][curr_term])
-        print(common_news)
-        terms_postings = [{k: v for k, v in self.index[field][curr_term].items() if k in common_news} for curr_term in terms]
-        #print(terms_postings)
-        #Recorremos las noticias, encontrando en ellas para el campo dado, los ngramas dados.
-        for curr_new in common_news:
-            #Buscamos los ngramas que se encuentran en la actual noticia.
-            #Lo visualizamos como una matriz, donde las filas son las posting list, y las columnas las posiciones.
-            #Ejemplo: [[1,3,8],[2,4]]; Aqui, habria 2 parejas, [1,2] y [3,4].
-            curr_term_row = curr_term_col = next_term_col = 0
-            next_term_row = 1
-            #while curr_term_col != len(terms_postings)
+        return []
 
 
     def get_stemming(self, term, field='article'):
@@ -693,7 +678,7 @@ class SAR_Project:
                 if new not in p1:
                     reversed_posting_list.add(new)
         
-        return list(reversed_posting_list)
+        return sorted(list(reversed_posting_list))
 
 
     def and_posting(self, p1, p2):
