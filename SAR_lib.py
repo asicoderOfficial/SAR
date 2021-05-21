@@ -353,7 +353,6 @@ class SAR_Project:
                     self.ptindex[i][term].append(j)
                     aux = j[1:]
                     j = aux + j[0]
-        print("a")
         ####################################################
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
         ####################################################
