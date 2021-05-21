@@ -353,7 +353,7 @@ class SAR_Project:
                     self.ptindex[i][term].append(j)
                     aux = j[1:]
                     j = aux + j[0]
-
+        print("a")
         ####################################################
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
         ####################################################
@@ -386,7 +386,10 @@ class SAR_Project:
         if (self.permuterm):
             print('PERMUTERMS:')
             for b in self.ptindex.keys():
-                print("\t# of tokens in '{}': {}".format(b, len(self.ptindex[b])))
+                suma = 0
+                for c in self.ptindex[b].keys():
+                    sum += len(self.ptindex[b][c])
+                print("\t# of tokens in '{}': {}".format(b, suma))
             print('----------------------------------------')
         if (self.use_stemming):
             print('STEMS:')
