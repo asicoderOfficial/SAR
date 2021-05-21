@@ -215,7 +215,7 @@ class SAR_Project:
                 if filename.endswith('.json'):
                     fullname = os.path.join(dir, filename)
                     self.index_file(fullname)
-                    self.docs[self.docid] = filename
+                    self.docs[self.docid] = fullname
                     self.docid += 1
 
         if self.use_stemming:
@@ -278,10 +278,10 @@ class SAR_Project:
         newpos = 1
         for new in jlist:
             self.news[self.newid] = (self.docid, newpos)
-            newpos += 1
-            self.newid += 1
             for field in fields:
                 self.fill_posting_list(new, field)
+            self.newid += 1
+            newpos += 1
         #
         # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
         # cada noticia es un diccionario con los campos:
@@ -430,7 +430,7 @@ class SAR_Project:
         if query is None or len(query) == 0:
             return []
 
-        newquery = self.shunting_yard(self.infix_notation(query))  # Pasamos la query de a notación infija y la pasamos
+        newquery = self.shunting_yard(self.infix_notation(query))  # Pasamos la query de notación infija y la pasamos
                                                          # al algoritmo shunting_yard para obtener la postfija
         operandos = []
         newquery = list(map(self.mapquery, newquery))  # Formateamos los términos de la lista y obtenemos sus posting list.
@@ -622,7 +622,7 @@ class SAR_Project:
 
         """
         stem = self.stemmer.stem(term)
-        tokens = self.sindex[stem]
+        tokens = self.sindex[stem] if stem in self.sindex else []
         return [self.index[field][curr_term][t] for t in tokens]
 
 
@@ -833,21 +833,18 @@ class SAR_Project:
             else: rank = round(self.weight_noti[ID],4)
 
             #IDDocumento = self.news[ID]['doc_id']
-            PosicionDocumento = self.news[ID]['posición']
-            PathDocumento = self.docs['doc_id']
+            PosicionDocumento = self.news[ID][1]
+            PathDocumento = self.docs[self.news[ID][0]]
 
             #Leer el documento que contiene la noticia que queremos obtener la información
             with open(PathDocumento) as fl:
-                list = json.load(fl)
-
-                noticiait = list[PosicionDocumento]
-
+                lista = json.load(fl)
+                noticiait = lista[PosicionDocumento-1]
                 #Ahora obtenemos los datos requeridos de la noticia (Keywords, Id de noticia(ya presente en el iterador), la fecha y el título de esta)
                 keywords_noticia = noticiait['keywords']
                 titulo_noticia = noticiait['title']
                 fecha_noticia = noticiait['date']
                 noticiasprocesadas += 1
-
                 #Distinguimos entre si se ha usado la opción -N o no, y según ello mostramos la información de la noticia por pantalla
                 if not self.show_snippet:
                     print("#{}      ({})  ({})  ({})   {}      ({})".format(noticiasprocesadas, rank, ID, fecha_noticia,
@@ -859,15 +856,11 @@ class SAR_Project:
         # Ahora viene la parte bonita, que es calcular el snippet en caso de ser requerido. Asimismo, lo implementaremos según la segunda forma sugerida en el boletín.
         cuerpoST = []
         if self.show_snippet:
-            aux = []
             cuerpoST = noticiait['article']
             cuerpoST = self.tokenize(cuerpoST)
 
         # Antes de retirar los espacios de la query, debemos separar los paréntesis de la query
-        q_sep = ""
-        q_sep = q.replace("(", " ")
-        q_sep = q.replace(")", " ")
-        q_sep = q_sep.split()
+        a = self.format_terms(query.split())
 
         # Añadimos el índice de la palabra contenida en la query a la lista
         for pal in q_sep:
@@ -914,6 +907,7 @@ class SAR_Project:
                     a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + 2])
         print("Snippet: {} ".format(a_devolver_snippet))
         print("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-")
+        return len(result)
 
 
 
