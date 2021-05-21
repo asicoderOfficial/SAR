@@ -624,8 +624,11 @@ class SAR_Project:
         return: posting list
 
         """
+        #Realizamos el stem del termino dado.
         stem = self.stemmer.stem(term)
+        #Buscamos los tokens asociados a dicho stem.
         tokens = self.sindex[field][stem] if stem in self.sindex[field] else []
+        #Buscamos las noticias que contienen dicho token, y devolvemos la lista de las mismas.
         return [b for t in tokens for b in list(self.index[field][t].keys())]
 
 
@@ -829,6 +832,7 @@ class SAR_Project:
                         i = i + 1
         return result
 
+
     def solve_and_show(self, query):
         """
         NECESARIO PARA TODAS LAS VERSIONES
@@ -859,7 +863,6 @@ class SAR_Project:
         print("Query: " + query)
         print("Number of results: " + str(len(result)))
 
-        q = query.lower()
         #Iterar sobre cada noticia resultante de la query...
         for ID in result:
             if not self.use_ranking:
@@ -948,41 +951,6 @@ class SAR_Project:
             print("Snippet: {} ".format(a_devolver_snippet))
             print("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-")
         return len(result)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
-
-
 
 
     def rank_result(self, result, query):
