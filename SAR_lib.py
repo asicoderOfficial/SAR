@@ -317,7 +317,10 @@ class SAR_Project:
         for i in self.index.keys():
             self.sindex[i] = {}
             for j in self.index[i].keys():
-                self.sindex[i][self.stemmer.stem(j)] = j
+                if self.stemmer.stem(j) not in self.sindex[i]:
+                    self.sindex[i][self.stemmer.stem(j)] = [j]
+                else:
+                    self.sindex[i][self.stemmer.stem(j)] += [j]
 
 
 
@@ -403,6 +406,13 @@ class SAR_Project:
         else:
             return query
 
+    def cleanquery(self, query):
+        if isinstance(query, list):  # Si son terminos
+            ft = self.format_terms(query)  # Los formateamos
+            return ft
+
+        else:
+            return query
 
 
     def solve_query(self, query, prev={}):
@@ -569,7 +579,7 @@ class SAR_Project:
         elif self.use_stemming:  # Si se requiere stemming del termino:
             return self.get_stemming(terms[0], field)
         else:
-            return self.index[field][terms[0]].keys() if terms[0] in self.index[field] else []
+            return list(self.index[field][terms[0]].keys()) if terms[0] in self.index[field] else []
 
 
     def get_positionals(self, terms, field='article'):
@@ -615,8 +625,8 @@ class SAR_Project:
 
         """
         stem = self.stemmer.stem(term)
-        tokens = self.sindex[stem] if stem in self.sindex else []
-        return [self.index[field][t] for t in tokens]
+        tokens = self.sindex[field][stem] if stem in self.sindex[field] else []
+        return [b for t in tokens for b in list(self.index[field][t].keys())]
 
 
     def get_permuterm(self, term, field='article'):
@@ -788,6 +798,36 @@ class SAR_Project:
         print("%s\t%d" % (query, len(result)))
         return len(result)  # para verificar los resultados (op: -T)
 
+    def get_terms_permuterm(self, term, field="article"):
+        term = term[0] + '$'
+        while term[-1] != '*' and term[-1] != '?':
+            term = term[-1] + term[:-1]
+
+        result = []
+        if term[-1] == '*':
+            term = term[:-1]
+            for key in self.ptindex[field]:
+                permuterms = self.ptindex[field][key]
+                i = 0
+                end = False
+                while i < len(permuterms) and not end:
+                    if term in permuterms[i]:
+                        result += [key]
+                        end = True
+                    i = i + 1
+        else:
+            term = term[:-1]
+            for key in self.ptindex[field]:
+                if len(key) == len(term):
+                    permuterms = self.ptindex[field][key]
+                    i = 0
+                    end = False
+                    while i < len(permuterms) and not end:
+                        if term in permuterms[i]:
+                            result += [key]
+                            end = True
+                        i = i + 1
+        return result
 
     def solve_and_show(self, query):
         """
@@ -807,7 +847,8 @@ class SAR_Project:
         #Variables auxiliares:
         noticiasprocesadas = 1 #Contador usado más adelante para indicar el número de noticia procesada.
         #Resolvemos la query y en caso de que se aplique ranking aplicamos para las noticias resultantes.
-
+        b = self.shunting_yard(self.infix_notation(query))
+        a = list(map(self.cleanquery, b))
         result = self.solve_query(query)
         if not result:
             return 0
@@ -847,59 +888,65 @@ class SAR_Project:
                     noticiasprocesadas, rank, ID, fecha_noticia, titulo_noticia, keywords_noticia))
 
         # Ahora viene la parte bonita, que es calcular el snippet en caso de ser requerido. Asimismo, lo implementaremos según la segunda forma sugerida en el boletín.
-        cuerpoST = []
-        if self.show_snippet:
-            cuerpoST = noticiait['article']
-            cuerpoST = self.tokenize(cuerpoST)
+            cuerpoST = []
+            if self.show_snippet:
+                cuerpoST = noticiait['article']
+                cuerpoST = self.tokenize(cuerpoST)
 
-        # Antes de retirar los espacios de la query, debemos separar los paréntesis de la query
-        a = self.format_terms(query.split())
+            # Antes de retirar los espacios de la query, debemos separar los paréntesis de la query
+            q_sep = list(map(self.cleanquery, self.shunting_yard(self.infix_notation(query))))
 
-        # Añadimos el índice de la palabra contenida en la query a la lista
-        for pal in q_sep:
-            for iterador in range(len(cuerpoST)):
-                if pal not in lista_operadores and pal in cuerpoST[iterador]:
-                    aux_id.append(pal)
-                    break  # Sólo queremos añadir la primera ocurrencia.
+            # Añadimos el índice de la palabra contenida en la query a la lista
+            if self.permuterm:
+                for part in q_sep:
+                    if isinstance(part,list):
+                        if any(d for d in part[1] if any(ds in d for ds in ["*", "?"])):
+                            part[1] = self.get_terms_permuterm(part[1])
+            aux_id = []
+            for part in q_sep:
+                if isinstance(part,list):
+                    for term in part[1]:
+                        if ID in self.index["article"][term]:
+                            aux_id += [self.index["article"][term][ID][0]]
 
-        aux_id.sort()  # Ordenamos ids por orden ascendente.
-        a_devolver_snippet = ""  # Cadena vacía para devolver...
-        Proc = False
+            aux_id.sort()  # Ordenamos ids por orden ascendente.
+            a_devolver_snippet = ""  # Cadena vacía para devolver...
+            Proc = False
 
-        for i in range(len(aux_id)):
+            for i in range(len(aux_id)):
+                # Comprobar que no estamos sobre el último índice
+                if (i < len(aux_id)-1 and not Proc):
 
-            # Comprobar que no estamos sobre el último índice
-            if (i < len(aux_id) - 1 and not Proc):
+                    id1 = aux_id[i]
+                    id2 = aux_id[i + 1]
 
-                id1 = aux_id[i]
-                id2 = aux_id[i + 1]
-
-                # Ahora hay que comprobar si se solapan. La distancia escogida arbitrariamente será de 4 palabras. Para contexto usaremos 2 palabras a izquierda y derecha.
-                if (id2 - id1 <= 4 and i):
-                    Proc = True
-                    if id1 < 2:
-                        a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id2 + 2])
-                    if id2 > len(cuerpoST) + 2:
-                        a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id2 + (len(cuerpoST) - id2)])
-                    a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id2 + 2])
+                    # Ahora hay que comprobar si se solapan. La distancia escogida arbitrariamente será de 4 palabras. Para contexto usaremos 2 palabras a izquierda y derecha.
+                    if (id2 - id1 <= 4):
+                        Proc = True
+                        if id1 < 2:
+                            a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id2 + 2])
+                        elif id2 > len(cuerpoST) + 2:
+                            a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id2 + (len(cuerpoST) - id2)])
+                        else:
+                            a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id2 + 2]) + "[...]"
+                    else:
+                        Proc = False
+                        if id1 < 2:
+                            a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id1 + 2])
+                        elif id2 > len(cuerpoST) + 2:
+                            a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
+                        else:
+                            a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id1 + 2]) + "[...]"
                 else:
-                    Proc = False
+                    id1 = aux_id[len(aux_id) - 1]
                     if id1 < 2:
                         a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id1 + 2])
-                    elif id2 > len(cuerpoST) + 2:
-                        a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
+                    elif id1 > len(cuerpoST) + 2:
+                        a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
                     else:
-                        a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + 2])
-            else:
-                id1 = aux_id[len(aux_id) - 1]
-                if id1 < 2:
-                    a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id1 + 2])
-                elif id2 > len(cuerpoST) + 2:
-                    a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
-                else:
-                    a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + 2])
-        print("Snippet: {} ".format(a_devolver_snippet))
-        print("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-")
+                        a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id1 + 2]) + "[...]"
+            print("Snippet: {} ".format(a_devolver_snippet))
+            print("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-")
         return len(result)
 
 
