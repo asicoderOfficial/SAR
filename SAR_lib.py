@@ -388,7 +388,7 @@ class SAR_Project:
             for b in self.ptindex.keys():
                 suma = 0
                 for c in self.ptindex[b].keys():
-                    sum += len(self.ptindex[b][c])
+                    suma += len(self.ptindex[b][c])
                 print("\t# of tokens in '{}': {}".format(b, suma))
             print('----------------------------------------')
         if (self.use_stemming):
