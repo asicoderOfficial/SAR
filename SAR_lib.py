@@ -801,10 +801,77 @@ class SAR_Project:
         return: el numero de noticias recuperadas, para la opcion -T
         
         """
+        #Variables auxiliares:
+        noticiasprocesadas = 1 #Contador usado más adelante para indicar el número de noticia procesada.
         #Resolvemos la query y en caso de que se aplique ranking aplicamos para las noticias resultantes.
+
         result = self.solve_query(query)
+        if result is None:
+            return 0
+        #Si la consulta usa ranking, aplicamos para el resultado de la query.
         if self.use_ranking:
             result = self.rank_result(result, query)   
+
+        print("Query: " + str(query))
+        print("Number of results: " + str(len(result)))
+
+        q = query.lower()
+        #Iterar sobre cada noticia resultante de la query...
+        for ID in result:
+            if not self.use_ranking:
+                rank = 0
+            else: rank = round(self.weight_noti[ID],4)
+
+            IDDocumento = self.news[ID]['doc_id']
+            PosicionDocumento = self.news[ID]['posición']
+            PathDocumento = self.docs['doc_id']
+
+            #Leer el documento que contiene la noticia que queremos obtener la información
+            with open(PathDocumento) as fl:
+                list = json.load(fl)
+
+                noticiait = list[PosicionDocumento]
+
+                #Ahora obtenemos los datos requeridos de la noticia (Keywords, Id de noticia(ya presente en el iterador), la fecha y el título de esta)
+                keywords_noticia = noticiait['keywords']
+                titulo_noticia = noticiait['title']
+                fecha_noticia = noticiait['date']
+                noticiasprocesadas += 1
+
+                #Distinguimos entre si se ha usado la opción -N o no, y según ello mostramos la información de la noticia por pantalla
+                if not self.show_snippet:
+                    print("#{}      ({})  ({})  ({})   {}      ({})".format(noticiasprocesadas,rank,ID,fecha_noticia,titulo_noticia,keywords_noticia))
+                else: print("#{} \nScore:{} \nNewsID: {}  \nDate: {}   \nTitle: {}   \nNKeywords: {}".format(noticiasprocesadas,rank,ID,fecha_noticia,titulo_noticia,keywords_noticia))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         ########################################
         ## COMPLETAR PARA TODAS LAS VERSIONES ##
@@ -889,7 +956,7 @@ class SAR_Project:
             Masquepesados.append(pesado_noticia)
             
             #Para finalizar, antes de devolver la lista, se ordena según el ranking de noticias.
-            res = [i for _,i in sorted(zip(Masquepesados,result), reverse = True) ]
+            res = [i for _,i in sorted(zip(Masquepesados,result), reverse = True)]
 
             pass
         
