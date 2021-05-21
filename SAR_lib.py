@@ -23,7 +23,12 @@ class SAR_Project:
               ("keywords", True), ("article", True),
               ("summary", True)]
     
-    
+    #Identificador de noticias empleado como clave del diccionario self.news.
+    newid = 1
+    #Identificador de documento empleado como clave en self.docs y como primer valor de tupla en self.news.
+    docid = 1
+    #Posicion de la noticia en el documento.
+    newpos = 1
     # numero maximo de documento a mostrar cuando self.show_all es False
     SHOW_MAX = 10
 
@@ -55,9 +60,9 @@ class SAR_Project:
         self.use_stemming = False # valor por defecto, se cambia con self.set_stemming()
         self.use_ranking = False  # valor por defecto, se cambia con self.set_ranking()
         #Variables adicionales para las partes opcionales.
-        self.multifield = False
-        self.positional = False
-        self.permuterm = False
+        self.multifield = False # valor por defecto, se cambia con self.set_multifield()
+        self.positional = False # valor por defecto, se cambia con self.set_positional()
+        self.permuterm = False # valor por defecto, se cambia con self.set_permuterm()
 
     ###############################
     ###                         ###
@@ -188,28 +193,35 @@ class SAR_Project:
 
         """
         #Comprobamos las opciones seleccionadas y anadimos las correspondientes.
-        self.set_multifield(args.multifield)
-        self.set_positional(args.positional)
-        self.set_stemming(args.stem)
-        self.set_ranking(args.rank)
-        self.set_showall(args.all)
-        self.set_snippet(args.snippet)
-        self.set_permuterm(args.permuterm)
+        if 'multifield' in args:
+            self.set_multifield(args['multifield'])
+        if 'positional' in args:
+            self.set_positional(args['positional'])
+        if 'stem' in args:
+            self.set_stemming(args['stem'])
+        if 'rank' in args:
+            self.set_ranking(args['rank'])
+        if 'all' in args:
+            self.set_showall(args['all'])
+        if 'snippet' in args:
+            self.set_snippet(args['snippet'])
+        if 'permuterm' in args:
+            self.set_permuterm(args['permuterm'])
 
         self.index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}} if self.multifield else {'article':{}}
         
-        docid = 1
         for dir, _, files in os.walk(root):
             for filename in files:
                 if filename.endswith('.json'):
                     fullname = os.path.join(dir, filename)
                     self.index_file(fullname)
-                    self.docs[docid] = filename
-                    docid += 1
+                    self.docs[self.docid] = filename
+                    self.docid += 1
 
         if self.use_stemming:
             self.make_stemming()
-        self.make_permuterm()
+        if self.permuterm:
+            self.make_permuterm()
         ##########################################
         ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
         ##########################################
@@ -263,7 +275,11 @@ class SAR_Project:
             jlist = json.load(fh)
 
         fields = [f[0] for f in self.fields] if len(self.index.keys()) > 1 else ['article']
+        newpos = 1
         for new in jlist:
+            self.news[self.newid] = (self.docid, newpos)
+            newpos += 1
+            self.newid += 1
             for field in fields:
                 self.fill_posting_list(new, field)
         #
@@ -275,9 +291,6 @@ class SAR_Project:
         #
         #
         #
-        #################
-        ### COMPLETAR ###
-        #################
 
 
 
@@ -322,27 +335,6 @@ class SAR_Project:
         Crea el indice permuterm (self.ptindex) para los terminos de todos los indices.
 
         """
-        """
-        for i in self.index.keys():
-            if i not in self.ptindex:
-                self.ptindex[i] = []
-            for j in self.index[i].keys():
-                term = j
-                j = j+'$'
-                for k in range(len(j)):
-                    tupla = (j, term)
-                    self.ptindex[i].append(tupla)
-                    
-                    if j not in self.ptindex[i]:
-                        self.ptindex[i][j] = [term]
-                    else:
-                        self.ptindex[i][j] = self.ptindex[i][j].append(term)
-                        
-                    aux = j[1:]
-                    j = aux + j[0]
-                    
-            self.ptindex[i].sort(key=lambda x: x[0])
-        """
         for i in self.index.keys():
             self.ptindex[i] = {}
             for j in self.index[i].keys():
@@ -353,10 +345,6 @@ class SAR_Project:
                     self.ptindex[i][term].append(j)
                     aux = j[1:]
                     j = aux + j[0]
-        ####################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE STEMMING ##
-        ####################################################
-
 
 
 
