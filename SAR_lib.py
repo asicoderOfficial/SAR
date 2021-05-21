@@ -849,13 +849,13 @@ class SAR_Project:
         #Resolvemos la query y en caso de que se aplique ranking aplicamos para las noticias resultantes.
 
         result = self.solve_query(query)
-        if result is None:
+        if not result:
             return 0
         #Si la consulta usa ranking, aplicamos para el resultado de la query.
         if self.use_ranking:
             result = self.rank_result(result, query)   
 
-        print("Query: " + str(query))
+        print("Query: " + query)
         print("Number of results: " + str(len(result)))
 
         q = query.lower()
@@ -865,7 +865,7 @@ class SAR_Project:
                 rank = 0
             else: rank = round(self.weight_noti[ID],4)
 
-            IDDocumento = self.news[ID]['doc_id']
+            #IDDocumento = self.news[ID]['doc_id']
             PosicionDocumento = self.news[ID]['posición']
             PathDocumento = self.docs['doc_id']
 
@@ -890,6 +890,7 @@ class SAR_Project:
                     noticiasprocesadas, rank, ID, fecha_noticia, titulo_noticia, keywords_noticia))
 
         # Ahora viene la parte bonita, que es calcular el snippet en caso de ser requerido. Asimismo, lo implementaremos según la segunda forma sugerida en el boletín.
+        cuerpoST = []
         if self.show_snippet:
             aux = []
             cuerpoST = noticiait['article']
