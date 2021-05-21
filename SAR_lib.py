@@ -143,9 +143,8 @@ class SAR_Project:
         self.positional = args['positional']
         self.stemming = args['stem']
         self.permuterm = args['permuterm']
-        if self.multifield is not None:
-            new_self_index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}}
-            self.index = new_self_index
+        self.index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}} if self.multifield else {'article':{}}
+            
         print(self.index)
         print()
         docid = 1
@@ -159,7 +158,6 @@ class SAR_Project:
         if self.use_stemming:
             self.make_stemming()
         self.make_permuterm()
-        print(self.index)
         ##########################################
         ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
         ##########################################
@@ -171,12 +169,15 @@ class SAR_Project:
         El formato del indice es el siguiente:
         self.index = {field:{token:{new_id,[position1,position2,…]}}}
         """
-
+        #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
         if field == 'date':
-            #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
-            self.index[field][new['date']] = {new['id']:[]}
+            if new['date'] not in self.index[field]:
+                self.index[field][new['date']] = {new['id']:[]}
+            else:
+                self.index[field][new['date']][new['id']] = []
+        #Tokenizamos y guardamos las posiciones de cada token, empezando por 1.
         else:
-            #Tokenizamos y guardamos las posiciones de cada token, empezando por 1.
+            
             content = self.tokenize(new[field])
             pos = 1
             for token in content:
@@ -209,11 +210,10 @@ class SAR_Project:
         with open(filename) as fh:
             jlist = json.load(fh)
 
-        fields = [f[0] for f in self.fields]
+        fields = [f[0] for f in self.fields] if len(self.index.keys()) > 1 else ['article']
         for new in jlist:
             for field in fields:
                 self.fill_posting_list(new, field)
-        print(self.index)
         #
         # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
         # cada noticia es un diccionario con los campos:
@@ -226,6 +226,7 @@ class SAR_Project:
         #################
         ### COMPLETAR ###
         #################
+        print(self.index)
 
 
 
