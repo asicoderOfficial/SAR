@@ -236,9 +236,9 @@ class SAR_Project:
         #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
         if field == 'date':
             if new['date'] not in self.index[field]:
-                self.index[field][new['date']] = {new['id']:[]}
+                self.index[field][new['date']] = {self.newid:[]}
             else:
-                self.index[field][new['date']][new['id']] = []
+                self.index[field][new['date']][self.newid] = []
         #Tokenizamos y guardamos las posiciones de cada token, empezando por 1.
         else:
             
@@ -246,12 +246,12 @@ class SAR_Project:
             pos = 1
             for token in content:
                 if token not in self.index[field]:
-                    self.index[field][token] = {new['id']:[pos]}
+                    self.index[field][token] = {self.newid:[pos]}
                 else:
-                    if new['id'] not in self.index[field][token]:
-                        self.index[field][token][new['id']] = [pos]
+                    if self.newid not in self.index[field][token]:
+                        self.index[field][token][self.newid] = [pos]
                     else:
-                        self.index[field][token][new['id']] += [pos]
+                        self.index[field][token][self.newid] += [pos]
                 pos += 1
         
 
@@ -393,12 +393,6 @@ class SAR_Project:
         
 
 
-
-
-
-
-
-
     ###################################
     ###                             ###
     ###   PARTE 2.1: RECUPERACION   ###
@@ -471,7 +465,7 @@ class SAR_Project:
         :param inputt: consulta en notacion de infijo
         :return: consulta en notación de postfijo
         """
-        stack = [] # Pila pperadores
+        stack = [] # Pila operadores
         out = [] # Salida
         ops = ["OR", "AND", "NOT"]  # Operadores
         precs = [1, 1, 2]  # Precedencias, mayor valor mas precedencia
@@ -579,33 +573,6 @@ class SAR_Project:
             return self.get_stemming(terms[0], field)
         else:
             return self.index[field][terms[0]].keys() if terms[0] in self.index[field] else []
-
-
-
-    def get_positionals_recursive(self, terms, new_pos, new_id, terms_pos, field, positional_list):
-        """
-        Metodo que recursivamente atraviesa el arbol de ngramas, obteniendo todos para todas las noticias.
-        """
-        """
-        result = []
-        if terms[terms_pos] not in self.index[field]:
-            return positional_list
-        for new in self.index[field][terms[terms_pos]]:
-            # Caso base: llegamos a un nodo raiz.
-            # Es el ultimo termino de la lista y sigue al anterior.
-            if terms_pos == len(terms) - 1 and new[2] == new_pos + 1 and new[0] == new_id:
-                return positional_list + [new]
-            # Nos encontramos en el primer termino (nodos raiz).
-            # Se generan tantos arboles como noticias que contienen el primer termino existen.
-            elif terms_pos == 0:
-                result.extend(self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, [new]))
-            # Nodo intermedio, continuamos.
-            elif new[0] == new_id and new[2] == new_pos + 1:
-                result.extend(self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, positional_list + [new]))
-        # No hay continuacion posible para la lista de terminos que buscamos en esta noticia. Devolvemos vacio
-        return result
-        """
-
 
 
     def get_positionals(self, terms, field='article'):
@@ -883,69 +850,9 @@ class SAR_Project:
 
                 #Distinguimos entre si se ha usado la opción -N o no, y según ello mostramos la información de la noticia por pantalla
                 if not self.show_snippet:
-                    print("#{}      ({})  ({})  ({})   {}      ({})".format(noticiasprocesadas, rank, ID, fecha_noticia,
-                                                                            titulo_noticia, keywords_noticia))
-                else:
-                    print("#{} \nScore:{} \nNewsID: {}  \nDate: {}   \nTitle: {}   \nNKeywords: {}".format(
-                    noticiasprocesadas, rank, ID, fecha_noticia, titulo_noticia, keywords_noticia))
+                    print("#{}      ({})  ({})  ({})   {}      ({})".format(noticiasprocesadas,rank,ID,fecha_noticia,titulo_noticia,keywords_noticia))
+                else: print("#{} \nScore:{} \nNewsID: {}  \nDate: {}   \nTitle: {}   \nNKeywords: {}".format(noticiasprocesadas,rank,ID,fecha_noticia,titulo_noticia,keywords_noticia))
 
-        # Ahora viene la parte bonita, que es calcular el snippet en caso de ser requerido. Asimismo, lo implementaremos según la segunda forma sugerida en el boletín.
-        if self.show_snippet:
-            aux = []
-            cuerpoST = noticiait['article']
-            cuerpoST = self.tokenize(cuerpoST)
-
-        # Antes de retirar los espacios de la query, debemos separar los paréntesis de la query
-        q_sep = ""
-        q_sep = q.replace("(", " ")
-        q_sep = q.replace(")", " ")
-        q_sep = q_sep.split()
-
-        # Añadimos el índice de la palabra contenida en la query a la lista
-        for pal in q_sep:
-            for iterador in range(len(cuerpoST)):
-                if pal not in lista_operadores and pal in cuerpoST[iterador]:
-                    aux_id.append(pal)
-                    break  # Sólo queremos añadir la primera ocurrencia.
-
-        aux_id.sort()  # Ordenamos ids por orden ascendente.
-        a_devolver_snippet = ""  # Cadena vacía para devolver...
-        Proc = False
-
-        for i in range(len(aux_id)):
-
-            # Comprobar que no estamos sobre el último índice
-            if (i < len(aux_id) - 1 and not Proc):
-
-                id1 = aux_id[i]
-                id2 = aux_id[i + 1]
-
-                # Ahora hay que comprobar si se solapan. La distancia escogida arbitrariamente será de 4 palabras. Para contexto usaremos 2 palabras a izquierda y derecha.
-                if (id2 - id1 <= 4 and i):
-                    Proc = True
-                    if id1 < 2:
-                        a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id2 + 2])
-                    if id2 > len(cuerpoST) + 2:
-                        a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id2 + (len(cuerpoST) - id2)])
-                    a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id2 + 2])
-                else:
-                    Proc = False
-                    if id1 < 2:
-                        a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id1 + 2])
-                    elif id2 > len(cuerpoST) + 2:
-                        a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
-                    else:
-                        a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + 2])
-            else:
-                id1 = aux_id[len(aux_id) - 1]
-                if id1 < 2:
-                    a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id1 + 2])
-                elif id2 > len(cuerpoST) + 2:
-                    a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
-                else:
-                    a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + 2])
-        print("Snippet: {} ".format(a_devolver_snippet))
-        print("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-")
 
 
 
