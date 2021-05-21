@@ -142,7 +142,8 @@ class SAR_Project:
         if self.multifield is not None:
             new_self_index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}}
             self.index = new_self_index
-
+        print(self.index)
+        print()
         docid = 1
         for dir, subdirs, files in os.walk(root):
             for filename in files:
@@ -165,12 +166,10 @@ class SAR_Project:
         El formato del indice es el siguiente:
         self.index = {field:{token:{new_id,[position1,position2,…]}}}
         """
-        for f in SAR_Project.fields:
-            self.index[f[0]] = {}
 
         if field == 'date':
             #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
-            self.index[field]['date'] = {new['id']:[]}
+            self.index[field][new['date']] = {new['id']:[]}
         else:
             #Tokenizamos y guardamos las posiciones de cada token, empezando por 1.
             content = self.tokenize(new[field])
@@ -514,6 +513,7 @@ class SAR_Project:
         """
         Metodo que recursivamente atraviesa el arbol de ngramas, obteniendo todos para todas las noticias.
         """
+        """
         result = []
         if terms[terms_pos] not in self.index[field]:
             return positional_list
@@ -531,6 +531,9 @@ class SAR_Project:
                 result.extend(self.get_positionals_recursive(terms, new[2], new[0], terms_pos+1, field, positional_list + [new]))
         # No hay continuacion posible para la lista de terminos que buscamos en esta noticia. Devolvemos vacio
         return result
+        """
+
+
 
     def get_positionals(self, terms, field='article'):
         """
@@ -544,6 +547,22 @@ class SAR_Project:
         return: posting list
 
         """
+        #Obtenemos todas las noticias en las que aparece cada termino, con su correspondiente posting list.
+        #Filtramos, nos quedamos con las noticias comunes a todos los terminos en el campo seleccionado.
+        common_news = self.index[field][terms[0]]
+        for curr_term in terms[1:]:
+            common_news = self.and_posting(common_news, self.index[field][curr_term])
+        terms_postings = [{k: v for k, v in self.index[field][curr_term].items() if k in common_news} for curr_term in terms]
+        #Recorremos las noticias, encontrando en ellas para el campo dado, los ngramas dados.
+        for curr_new in common_news:
+            #Buscamos los ngramas que se encuentran en la actual noticia.
+            #Lo visualizamos como una matriz, donde las filas son las posting list, y las columnas las posiciones.
+            #Ejemplo: [[1,3,8],[2,4]]; Aqui, habria 2 parejas, [1,2] y [3,4].
+            curr_term_row = curr_term_col = next_term_col = 0
+            next_term_row = 1
+
+            
+        #Filtramos, quedando las noticias 
         positionals = []
         positionals = self.get_positionals_recursive(terms, 0, '', 0, field, positionals)
         return positionals
@@ -624,6 +643,7 @@ class SAR_Project:
                     reversed_posting_list.add(new)
         
         return list(reversed_posting_list)
+
 
     def and_posting(self, p1, p2):
         """
