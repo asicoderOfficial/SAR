@@ -141,12 +141,10 @@ class SAR_Project:
 
         self.multifield = args['multifield']
         self.positional = args['positional']
-        self.stemming = args['stem']
+        self.set_stemming(args['stem'])
         self.permuterm = args['permuterm']
         self.index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}} if self.multifield else {'article':{}}
-            
-        print(self.index)
-        print()
+        
         docid = 1
         for dir, subdirs, files in os.walk(root):
             for filename in files:
@@ -155,6 +153,7 @@ class SAR_Project:
                     self.index_file(fullname)
                     self.docs[docid] = filename
                     docid += 1
+
         if self.use_stemming:
             self.make_stemming()
         self.make_permuterm()
@@ -226,7 +225,6 @@ class SAR_Project:
         #################
         ### COMPLETAR ###
         #################
-        print(self.index)
 
 
 
@@ -255,10 +253,10 @@ class SAR_Project:
         self.stemmer.stem(token) devuelve el stem del token
 
         """
-
         for i in self.index.keys():
+            self.sindex[i] = {}
             for j in self.index[i].keys():
-                self.sindex[self.stemmer.stem(j)] = j
+                self.sindex[i][self.stemmer.stem(j)] = j
 
 
 
@@ -335,16 +333,15 @@ class SAR_Project:
         if (self.permuterm):
             print('PERMUTERMS:')
             for b in self.ptindex.keys():
-                 print("\t# of tokens in '{}': {}".format(b, len(self.ptindex[b])))
+                print("\t# of tokens in '{}': {}".format(b, len(self.ptindex[b])))
             print('----------------------------------------')
-        if (self.stemming):
+        if (self.use_stemming):
             print('STEMS:')
             for c in self.sindex.keys():
-                 print("\t# of tokens in '{}': {}".format(c, len(self.sindex[c])))
+                print("\t# of tokens in '{}': {}".format(c, len(self.sindex[c])))
             print('----------------------------------------')
         if (self.positional):
             print('Positional queries are allowed')
-        
         else:
             print(print('Positional queries are NOT allowed'))
 
@@ -586,6 +583,7 @@ class SAR_Project:
         for curr_term in terms[1:]:
             common_news = self.and_posting(common_news, self.index[field][curr_term])
         terms_postings = [{k: v for k, v in self.index[field][curr_term].items() if k in common_news} for curr_term in terms]
+        
         #Recorremos las noticias, encontrando en ellas para el campo dado, los ngramas dados.
         for curr_new in common_news:
             #Buscamos los ngramas que se encuentran en la actual noticia.
