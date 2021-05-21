@@ -34,7 +34,7 @@ class SAR_Project:
         NECESARIO PARA LA VERSION MINIMA
 
         Incluye todas las variables necesaria para todas las ampliaciones.
-        Puedes aÃ±adir mÃ¡s variables si las necesitas 
+        Puedes aÃ±adir mÃ¡s variables si las necesitas
 
         """
         self.index = {} # hash para el indice invertido de terminos --> clave: termino, valor: posting list.
@@ -54,6 +54,11 @@ class SAR_Project:
         self.show_snippet = False # valor por defecto, se cambia con self.set_snippet()
         self.use_stemming = False # valor por defecto, se cambia con self.set_stemming()
         self.use_ranking = False  # valor por defecto, se cambia con self.set_ranking()
+        #Variables adicionales para las partes opcionales.
+        self.multifield = False
+        self.positional = False
+        self.permuterm = False
+
     ###############################
     ###                         ###
     ###      CONFIGURACION      ###
@@ -121,6 +126,50 @@ class SAR_Project:
         self.use_ranking = v
 
 
+    def set_multifield(self, v):
+        """
+
+        Cambia el modo de campos por defecto.
+        
+        input: "v" booleano.
+
+        UTIL PARA LA VERSION CON MULTIPLES CAMPOS
+
+        si self.multifield es True se emplean todos los campos de la variable global fields.
+
+        """
+        self.multifield = v
+
+
+    def set_positional(self, v):
+        """
+
+        Cambia el modo de positional por defecto.
+        
+        input: "v" booleano.
+
+        UTIL PARA LA VERSION CON BUSQUEDA POSICIONAL DE NOTICIAS
+
+        si self.positional es True, se realiza una busqueda posicional de un conjunto de terminos.
+
+        """
+        self.positional = v
+
+
+    def set_permuterm(self, v):
+        """
+
+        Cambia el modo de permuterm por defecto.
+        
+        input: "v" booleano.
+
+        UTIL PARA LA VERSION CON BUSQUEDA CON PERMUTERM DE NOTICIAS
+
+        si self.permuterm es True, se realiza una busqueda por permuterm.
+
+        """
+        self.permuterm = v
+
 
 
     ###############################
@@ -138,15 +187,19 @@ class SAR_Project:
         los argumentos adicionales "**args" solo son necesarios para las funcionalidades ampliadas
 
         """
+        #Comprobamos las opciones seleccionadas y anadimos las correspondientes.
+        self.set_multifield(args.multifield)
+        self.set_positional(args.positional)
+        self.set_stemming(args.stem)
+        self.set_ranking(args.rank)
+        self.set_showall(args.all)
+        self.set_snippet(args.snippet)
+        self.set_permuterm(args.permuterm)
 
-        self.multifield = args['multifield']
-        self.positional = args['positional']
-        self.set_stemming(args['stem'])
-        self.permuterm = args['permuterm']
         self.index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}} if self.multifield else {'article':{}}
         
         docid = 1
-        for dir, subdirs, files in os.walk(root):
+        for dir, _, files in os.walk(root):
             for filename in files:
                 if filename.endswith('.json'):
                     fullname = os.path.join(dir, filename)
