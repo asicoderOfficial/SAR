@@ -2,8 +2,6 @@ import json
 from nltk.stem.snowball import SnowballStemmer
 import os
 import re
-import time
-import bisect
 import math
 class SAR_Project:
     """
@@ -222,9 +220,6 @@ class SAR_Project:
             self.make_stemming()
         if self.permuterm:
             self.make_permuterm()
-        ##########################################
-        ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
-        ##########################################
         
 
     def fill_posting_list(self, new, field):
@@ -241,7 +236,6 @@ class SAR_Project:
                 self.index[field][new['date']][self.newid] = []
         #Tokenizamos y guardamos las posiciones de cada token, empezando por 1.
         else:
-            
             content = self.tokenize(new[field])
             pos = 1
             for token in content:
@@ -277,6 +271,7 @@ class SAR_Project:
         fields = [f[0] for f in self.fields] if len(self.index.keys()) > 1 else ['article']
         newpos = 1
         for new in jlist:
+            #Rellenamos el diccionario de noticias.
             self.news[self.newid] = (self.docid, newpos)
             for field in fields:
                 self.fill_posting_list(new, field)
@@ -343,7 +338,7 @@ class SAR_Project:
                 term = j
                 self.ptindex[i][term] = []
                 j = j + '$'
-                for k in range(len(j)):
+                for _ in range(len(j)):
                     self.ptindex[i][term].append(j)
                     aux = j[1:]
                     j = aux + j[0]
@@ -407,7 +402,6 @@ class SAR_Project:
             terms = self.get_posting(ft[1], ft[0])  # Obtenemos sus posting list
             lista = sorted(list(set(i for i in terms)))  # Nos quedamos con las noticias únicas
             return lista
-
         else:
             return query
 
@@ -462,7 +456,7 @@ class SAR_Project:
                 newquery.pop(i-2)
                 operandos = [] #Volvemos a analizar
                 i = 0
-        print(len(newquery[0]))
+                
         return newquery[0]
 
 
@@ -526,11 +520,13 @@ class SAR_Project:
 
         return [fieldr, [x.lower() for x in fterms]]
 
+
     def make_posting_list(self, p):
         """
         Crea una lista con el elemento y sus posiciones. [Key,pos]
         """
         pass
+
 
     def infix_notation(self, query):
         """
@@ -557,6 +553,7 @@ class SAR_Project:
                 ops.append(i) # Si es un operador y esta vacia lo añadimos a la lista de operaciones
         if term: ops.append(term) # Si aún hay terminos los añadimos a
         return ops
+
 
     def get_posting(self, terms, field='article'):
         """
@@ -601,8 +598,9 @@ class SAR_Project:
         common_news = self.index[field][terms[0]]
         for curr_term in terms[1:]:
             common_news = self.and_posting(common_news, self.index[field][curr_term])
+        print(common_news)
         terms_postings = [{k: v for k, v in self.index[field][curr_term].items() if k in common_news} for curr_term in terms]
-        
+        #print(terms_postings)
         #Recorremos las noticias, encontrando en ellas para el campo dado, los ngramas dados.
         for curr_new in common_news:
             #Buscamos los ngramas que se encuentran en la actual noticia.
@@ -610,12 +608,7 @@ class SAR_Project:
             #Ejemplo: [[1,3,8],[2,4]]; Aqui, habria 2 parejas, [1,2] y [3,4].
             curr_term_row = curr_term_col = next_term_col = 0
             next_term_row = 1
-
-            
-        #Filtramos, quedando las noticias 
-        positionals = []
-        positionals = self.get_positionals_recursive(terms, 0, '', 0, field, positionals)
-        return positionals
+            #while curr_term_col != len(terms_postings)
 
 
     def get_stemming(self, term, field='article'):
@@ -630,8 +623,11 @@ class SAR_Project:
         return: posting list
 
         """
+        #Realizamos el stem del termino dado.
         stem = self.stemmer.stem(term)
+        #Buscamos los tokens asociados a dicho stem.
         tokens = self.sindex[field][stem] if stem in self.sindex[field] else []
+        #Buscamos las noticias que contienen dicho token, y devolvemos la lista de las mismas.
         return [b for t in tokens for b in list(self.index[field][t].keys())]
 
 
@@ -689,7 +685,7 @@ class SAR_Project:
         return: posting list con todos los newid exceptos los contenidos en p
 
         """
-        # Convertir la lista p a un set para mejorar el tiempo de busqueda.
+        # Convertir la lista p a un set para mejorar el tiempo de busqueda, O(1) en Python.
         p1 = set(p.keys()) if isinstance(p, dict) else set(p)
         reversed_posting_list = set()
         for k in self.index['article'].keys():
@@ -862,6 +858,7 @@ class SAR_Project:
                         i = i + 1
         return result
 
+
     def solve_and_show(self, query):
         """
         NECESARIO PARA TODAS LAS VERSIONES
@@ -891,7 +888,6 @@ class SAR_Project:
         print("Query: " + query)
         print("Number of results: " + str(len(result)))
 
-        q = query.lower()
         #Iterar sobre cada noticia resultante de la query...
         for ID in result:
             if not self.use_ranking:
@@ -991,41 +987,6 @@ class SAR_Project:
         return len(result)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
-
-
-
-
     def rank_result(self, result, query):
         """
         NECESARIO PARA LA AMPLIACION DE RANKING
@@ -1084,15 +1045,12 @@ class SAR_Project:
             #Añadir los pesados sobre cada noticia
             self.weight_noti[noticia] = self.weight_noti.get(noticia,0) + pesado_noticia
             Masquepesados.append(pesado_noticia)
+            
+        #Para finalizar, antes de devolver la lista, se ordena según el ranking de noticias.
+        res = [i for _,i in sorted(zip(Masquepesados,result), reverse = True)]
 
-            #Para finalizar, antes de devolver la lista, se ordena según el ranking de noticias.
-            res = [i for _,i in sorted(zip(Masquepesados,result), reverse = True)]
         return res
-
         
-        ###################################################
-        ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE RANKING ##
-        ###################################################
 
 def and_posting(p1, p2):
         """
