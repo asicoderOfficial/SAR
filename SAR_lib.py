@@ -883,9 +883,69 @@ class SAR_Project:
 
                 #Distinguimos entre si se ha usado la opción -N o no, y según ello mostramos la información de la noticia por pantalla
                 if not self.show_snippet:
-                    print("#{}      ({})  ({})  ({})   {}      ({})".format(noticiasprocesadas,rank,ID,fecha_noticia,titulo_noticia,keywords_noticia))
-                else: print("#{} \nScore:{} \nNewsID: {}  \nDate: {}   \nTitle: {}   \nNKeywords: {}".format(noticiasprocesadas,rank,ID,fecha_noticia,titulo_noticia,keywords_noticia))
+                    print("#{}      ({})  ({})  ({})   {}      ({})".format(noticiasprocesadas, rank, ID, fecha_noticia,
+                                                                            titulo_noticia, keywords_noticia))
+                else:
+                    print("#{} \nScore:{} \nNewsID: {}  \nDate: {}   \nTitle: {}   \nNKeywords: {}".format(
+                    noticiasprocesadas, rank, ID, fecha_noticia, titulo_noticia, keywords_noticia))
 
+        # Ahora viene la parte bonita, que es calcular el snippet en caso de ser requerido. Asimismo, lo implementaremos según la segunda forma sugerida en el boletín.
+        if self.show_snippet:
+            aux = []
+            cuerpoST = noticiait['article']
+            cuerpoST = self.tokenize(cuerpoST)
+
+        # Antes de retirar los espacios de la query, debemos separar los paréntesis de la query
+        q_sep = ""
+        q_sep = q.replace("(", " ")
+        q_sep = q.replace(")", " ")
+        q_sep = q_sep.split()
+
+        # Añadimos el índice de la palabra contenida en la query a la lista
+        for pal in q_sep:
+            for iterador in range(len(cuerpoST)):
+                if pal not in lista_operadores and pal in cuerpoST[iterador]:
+                    aux_id.append(pal)
+                    break  # Sólo queremos añadir la primera ocurrencia.
+
+        aux_id.sort()  # Ordenamos ids por orden ascendente.
+        a_devolver_snippet = ""  # Cadena vacía para devolver...
+        Proc = False
+
+        for i in range(len(aux_id)):
+
+            # Comprobar que no estamos sobre el último índice
+            if (i < len(aux_id) - 1 and not Proc):
+
+                id1 = aux_id[i]
+                id2 = aux_id[i + 1]
+
+                # Ahora hay que comprobar si se solapan. La distancia escogida arbitrariamente será de 4 palabras. Para contexto usaremos 2 palabras a izquierda y derecha.
+                if (id2 - id1 <= 4 and i):
+                    Proc = True
+                    if id1 < 2:
+                        a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id2 + 2])
+                    if id2 > len(cuerpoST) + 2:
+                        a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id2 + (len(cuerpoST) - id2)])
+                    a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id2 + 2])
+                else:
+                    Proc = False
+                    if id1 < 2:
+                        a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id1 + 2])
+                    elif id2 > len(cuerpoST) + 2:
+                        a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
+                    else:
+                        a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + 2])
+            else:
+                id1 = aux_id[len(aux_id) - 1]
+                if id1 < 2:
+                    a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id1 + 2])
+                elif id2 > len(cuerpoST) + 2:
+                    a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
+                else:
+                    a_devolver_snippet += " ".join(cuerpoST[id1 - 2:id1 + 2])
+        print("Snippet: {} ".format(a_devolver_snippet))
+        print("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-")
 
 
 
