@@ -4,6 +4,7 @@ import os
 import re
 import time
 import bisect
+import math
 class SAR_Project:
     """
     Prototipo de la clase para realizar la indexacion y la recuperacion de noticias
@@ -46,6 +47,9 @@ class SAR_Project:
         self.news = {} # hash de noticias --> clave entero (newid), valor: la info necesaria para diferenciar la noticia dentro de su fichero (doc_id y posiciÃ³n dentro del documento)
         self.tokenizer = re.compile("\W+") # expresion regular para hacer la tokenizacion
         self.stemmer = SnowballStemmer('spanish') # stemmer en castellano
+        self.weight_noti = {} #Hash para pesados usado en rank_result.
+        self.perterms = {} #Hash para permuterm. La clave es el permuterm y el valor es la lista de términos de ese permuterm. 
+        self.stemterms = {} #Hash para stemming. La clave es el stem y el valor es la lista de términos asociados a ese stem.
         self.show_all = False # valor por defecto, se cambia con self.set_showall()
         self.show_snippet = False # valor por defecto, se cambia con self.set_snippet()
         self.use_stemming = False # valor por defecto, se cambia con self.set_stemming()
@@ -155,6 +159,7 @@ class SAR_Project:
         if self.use_stemming:
             self.make_stemming()
         self.make_permuterm()
+        print(self.index)
         ##########################################
         ## COMPLETAR PARA FUNCIONALIDADES EXTRA ##
         ##########################################
@@ -209,7 +214,6 @@ class SAR_Project:
             for field in fields:
                 self.fill_posting_list(new, field)
         print(self.index)
-
         #
         # "jlist" es una lista con tantos elementos como noticias hay en el fichero,
         # cada noticia es un diccionario con los campos:
@@ -311,11 +315,39 @@ class SAR_Project:
         
         Muestra estadisticas de los indices
         
-        """
-        pass
-        ########################################
-        ## COMPLETAR PARA TODAS LAS VERSIONES ##
-        ########################################
+        """ 
+        print('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-')
+
+        print('Number of indexed days: '+ str(len(self.docs)))
+
+        print('----------------------------------------')
+    
+        print('Number of indexed news: ' + str(len(self.news)))
+
+        print('----------------------------------------')
+
+        print('TOKENS:')
+
+        for a in self.index.keys():
+            print("\t# of tokens in '{}': {}".format(a, len(self.index[a])))
+        print('----------------------------------------')
+        if (self.permuterm):
+            print('PERMUTERMS:')
+            for b in self.ptindex.keys():
+                 print("\t# of tokens in '{}': {}".format(b, len(self.ptindex[b])))
+            print('----------------------------------------')
+        if (self.stemming):
+            print('STEMS:')
+            for c in self.sindex.keys():
+                 print("\t# of tokens in '{}': {}".format(c, len(self.sindex[c])))
+            print('----------------------------------------')
+        if (self.positional):
+            print('Positional queries are allowed')
+        
+        else:
+            print(print('Positional queries are NOT allowed'))
+
+        print('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-')
 
         
 
@@ -582,17 +614,15 @@ class SAR_Project:
         """
         stem = self.stemmer.stem(term)
         tokens = self.sindex[stem]
-        return [self.index[field][curr_term] for curr_term in self.index[field].keys() if stem in term]
+        return [self.index[field][curr_term][t] for t in tokens]
 
 
     def get_permuterm(self, term, field='article'):
-        if self.use_stemming:
-            term = term[0] + '$'
+        term = term[0] + '$'
         while term[-1] != '*' and term[-1] != '?':
             term = term[-1] + term[:-1]
 
         result = []
-
         if term[-1] == '*':
             term = term[:-1]
             for key in self.ptindex[field]:
@@ -651,21 +681,12 @@ class SAR_Project:
 
         Calcula el AND de dos posting list de forma EFICIENTE
 
-        param:  "p1", "p2": posting lists sobre las que calcular (diccionario)
-
+        param:  "p1", "p2": posting lists sobre las que calcular (diccionario o lista con id de las noticias)
 
         return: posting list con los newid incluidos en p1 y p2
 
         """
         answer = []
-        """
-        if p1 and isinstance(p1,tuple) or p2 and isinstance(p2,tuple):
-            p1c = sorted([i[0] for i in p1])
-            p2c = sorted([i[0] for i in p1])
-        else:
-            p1c = sorted(p1)
-            p2c = sorted(p2)
-        """
         p1c = list(p1.keys()) if isinstance(p1, dict) else [*p1]
         p2c = list(p2.keys()) if isinstance(p2, dict) else [*p2]
 
@@ -688,7 +709,7 @@ class SAR_Project:
 
         Calcula el OR de dos posting list de forma EFICIENTE
 
-        param:  "p1", "p2": posting lists sobre las que calcular
+        param:  "p1", "p2": posting lists sobre las que calcular (diccionario o lista con id de las noticias)
 
 
         return: posting list con los newid incluidos de p1 o p2
@@ -696,16 +717,6 @@ class SAR_Project:
         """
         # Como se indica en el boletin, seguimos la estructura de "merge".
         answer = []
-        """
-        if p1 and isinstance(p1[0],tuple) or p2 and isinstance(p2[0],tuple):
-            p1c = sorted([i[0] for i in p1])
-            p2c = sorted([i[0] for i in p2])
-        else:
-            p1c = sorted(p1)
-            p2c = sorted(p2)
-        """
-        #p1c = sorted(list(p1.keys())) if isinstance(p1, dict) else sorted(p1)
-        #p2c = sorted(list(p2.keys())) if isinstance(p2, dict) else sorted(p2)
         p1c = list(p1.keys()) if isinstance(p1, dict) else [*p1]
         p2c = list(p2.keys()) if isinstance(p2, dict) else [*p2]
         while p1c and p2c:
@@ -791,6 +802,7 @@ class SAR_Project:
         return: el numero de noticias recuperadas, para la opcion -T
         
         """
+        #Resolvemos la query y en caso de que se aplique ranking aplicamos para las noticias resultantes.
         result = self.solve_query(query)
         if self.use_ranking:
             result = self.rank_result(result, query)   
@@ -816,7 +828,71 @@ class SAR_Project:
 
         """
 
-        pass
+        #Términos de la query
+        t = {}
+
+        for a in query.keys():
+
+            term = a[0]
+
+            field = a[1]
+
+            #Ahora cabe buscar si se ha usado stemming o si se trata de consulta permuterm
+            if (self.use_stemming):
+                tt = self.stemterms[self.stemmer.stem(term)] 
+                for t1 in tt:
+                    t.setdefault(t1,field)
+            
+            #En caso de consulta permuterm
+
+            elif ("?" in term or "*" in term):
+                permuterms = self.get_permuterm(term,field)
+
+                for elemento in permuterms:
+                    aux = self.perterms[elemento]
+                    for  t2 in aux:
+                        t.setdefault(t2,field)
+            
+            else:
+                t.setdefault(term,field)
+            
+        #Declaramos lista de pesados para las noticias
+            Masquepesados = []
+
+        #Por cada noticia en el resultado...
+        for noticia in result:
+
+            #Por cada término y campo (Pues hay que calcular una por una para todas la noticias) usando las calculadas anteriormente.
+            for tpla in t:
+
+                term = tpla[0]
+
+                field = tpla[1]
+
+            #Para el pesado usaremos el explicado en el tema 4 de teoría.
+
+                #1er paso: Pesado del término
+                tf = 0
+                ft = self.weight[field][term].get(noticia,0)
+
+                if ft > 0:
+                    tf = math.log10(ft)
+                
+                #2do paso: Función global idf
+                df = len(self.weight[field][term])
+                idf = math.log10(self.news/df)
+
+                #3er paso: Acumular el pesado de cada término para obtener el total de la noticia
+                pesado_noticia = pesado_noticia + (tf*idf)
+
+            #Añadir los pesados sobre cada noticia
+            self.weight_noti[noticia] = self.weight_noti.get(noticia,0) + pesado_noticia
+            Masquepesados.append(pesado_noticia)
+            
+            #Para finalizar, antes de devolver la lista, se ordena según el ranking de noticias.
+            res = [i for _,i in sorted(zip(Masquepesados,result), reverse = True) ]
+
+            pass
         
         ###################################################
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE RANKING ##
