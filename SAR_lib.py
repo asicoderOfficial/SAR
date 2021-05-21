@@ -329,7 +329,6 @@ class SAR_Project:
 
 
 
-
     
     def make_permuterm(self):
         """
@@ -637,7 +636,14 @@ class SAR_Project:
 
 
     def get_permuterm(self, term, field='article'):
-        term = term[0] + '$'
+        """
+            Busca en el diccionario de permuterms las palabras que se ajustan a la wildcard.
+            Se hace una búsqueda exhaustiva.
+        :param term: termino a buscar (con wildcard)
+        :param field: campo donde buscar
+        :return: posting list con newid
+        """
+        term = term[0] + '$' #Indicamos el final del termino y luego rotamos la palabra hasta que la wildcard quede al final
         while term[-1] != '*' and term[-1] != '?':
             term = term[-1] + term[:-1]
 
@@ -648,7 +654,7 @@ class SAR_Project:
                 permuterms = self.ptindex[field][key]
                 i = 0
                 end = False
-                while i < len(permuterms) and not end:
+                while i < len(permuterms) and not end: #Recorremos toda la lista de terminos y sus rotaciones para encontrar las posting list de los términos.
                     if term in permuterms[i]:
                         result = self.or_posting(result, sorted(self.index[field][key].keys()))
                         end = True
@@ -656,13 +662,13 @@ class SAR_Project:
         else:
             term = term[:-1]
             for key in self.ptindex[field]:
-                if len(key) == len(term):
+                if len(key) == len(term): #Si es ? la longitud tendrá que ser la misma.
                     permuterms = self.ptindex[field][key]
                     i=0
                     end = False
                     while i < len(permuterms) and not end:
                         if term in permuterms[i]:
-                            result = self.or_posting(result, sorted(self.index[field][key].keys()))
+                            result = self.or_posting(result, sorted(self.index[field][key].keys())) #Recorremos toda la lista de terminos y sus rotaciones para encontrar las posting list de los términos.
                             end = True
                         i = i+1
         return result
@@ -779,7 +785,20 @@ class SAR_Project:
         ## COMPLETAR PARA TODAS LAS VERSIONES SI ES NECESARIO ##
         ########################################################
 
+    def get_terms_stemming(self, term, field='article'):
+        """
 
+        Devuelve los terminos asociados al stem de un termino.
+
+        param:  "term": termino para recuperar la posting list de su stem.
+                "field": campo sobre el que se debe recuperar la posting list, solo necesario se se hace la ampliacion de multiples indices
+
+        return: terminos
+
+        """
+        stem = self.stemmer.stem(term)
+        tokens = self.sindex[field][stem] if stem in self.sindex[field] else [term]
+        return tokens
 
 
 
@@ -806,6 +825,13 @@ class SAR_Project:
         return len(result)  # para verificar los resultados (op: -T)
 
     def get_terms_permuterm(self, term, field="article"):
+        """
+        Busca en el diccionario de permuterms las palabras que se ajustan a la wildcard.
+        Se hace una búsqueda exhaustiva.
+        :param term: termino a buscar (con wildcard)
+        :param field: campo donde buscar
+        :return: los términos que se asocian a esa busqueda.
+        """
         term = term[0] + '$'
         while term[-1] != '*' and term[-1] != '?':
             term = term[-1] + term[:-1]
@@ -854,14 +880,13 @@ class SAR_Project:
         #Variables auxiliares:
         noticiasprocesadas = 1 #Contador usado más adelante para indicar el número de noticia procesada.
         #Resolvemos la query y en caso de que se aplique ranking aplicamos para las noticias resultantes.
-        b = self.shunting_yard(self.infix_notation(query))
-        a = list(map(self.cleanquery, b))
         result = self.solve_query(query)
+        q_sep = list(map(self.cleanquery, self.shunting_yard(self.infix_notation(query))))
         if not result:
             return 0
         #Si la consulta usa ranking, aplicamos para el resultado de la query.
         if self.use_ranking:
-            result = self.rank_result(result, query)   
+            result = self.rank_result(result, q_sep)
 
         print("Query: " + query)
         print("Number of results: " + str(len(result)))
@@ -885,7 +910,6 @@ class SAR_Project:
                 keywords_noticia = noticiait['keywords']
                 titulo_noticia = noticiait['title']
                 fecha_noticia = noticiait['date']
-                noticiasprocesadas += 1
                 #Distinguimos entre si se ha usado la opción -N o no, y según ello mostramos la información de la noticia por pantalla
                 if not self.show_snippet:
                     print("#{}      ({})  ({})  ({})   {}      ({})".format(noticiasprocesadas, rank, ID, fecha_noticia,
@@ -893,7 +917,7 @@ class SAR_Project:
                 else:
                     print("#{} \nScore:{} \nNewsID: {}  \nDate: {}   \nTitle: {}   \nNKeywords: {}".format(
                     noticiasprocesadas, rank, ID, fecha_noticia, titulo_noticia, keywords_noticia))
-
+                noticiasprocesadas += 1
         # Ahora viene la parte bonita, que es calcular el snippet en caso de ser requerido. Asimismo, lo implementaremos según la segunda forma sugerida en el boletín.
             cuerpoST = []
             if self.show_snippet:
@@ -901,7 +925,7 @@ class SAR_Project:
                 cuerpoST = self.tokenize(cuerpoST)
 
             # Antes de retirar los espacios de la query, debemos separar los paréntesis de la query
-            q_sep = list(map(self.cleanquery, self.shunting_yard(self.infix_notation(query))))
+
 
             # Añadimos el índice de la palabra contenida en la query a la lista
             if self.permuterm:
@@ -909,12 +933,19 @@ class SAR_Project:
                     if isinstance(part,list):
                         if any(d for d in part[1] if any(ds in d for ds in ["*", "?"])):
                             part[1] = self.get_terms_permuterm(part[1])
+            if self.use_stemming:
+                for part in q_sep:
+                    if isinstance(part, list):
+                        if len(part[1]) == 1:
+                            part[1] = self.get_terms_stemming(part[1][0])
+
             aux_id = []
             for part in q_sep:
                 if isinstance(part,list):
                     for term in part[1]:
-                        if ID in self.index["article"][term]:
-                            aux_id += [self.index["article"][term][ID][0]]
+                        if term in self.index["article"]:
+                            if ID in self.index["article"][term]:
+                                aux_id += [self.index["article"][term][ID][0]]
 
             aux_id.sort()  # Ordenamos ids por orden ascendente.
             a_devolver_snippet = ""  # Cadena vacía para devolver...
@@ -922,36 +953,39 @@ class SAR_Project:
 
             for i in range(len(aux_id)):
                 # Comprobar que no estamos sobre el último índice
-                if (i < len(aux_id)-1 and not Proc):
+                if i < len(aux_id)-1 and not Proc:
 
                     id1 = aux_id[i]
                     id2 = aux_id[i + 1]
 
                     # Ahora hay que comprobar si se solapan. La distancia escogida arbitrariamente será de 4 palabras. Para contexto usaremos 2 palabras a izquierda y derecha.
-                    if (id2 - id1 <= 4):
+                    if id2 - id1 <= 4:
                         Proc = True
                         if id1 < 2:
                             a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id2 + 2])
-                        elif id2 > len(cuerpoST) + 2:
+                        if id2 > len(cuerpoST) + 2:
                             a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id2 + (len(cuerpoST) - id2)])
-                        else:
+                        if id1 > 2 and id2 < len(cuerpoST) + 2:
                             a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id2 + 2]) + "[...]"
                     else:
                         Proc = False
+                        id1 = aux_id[i]
                         if id1 < 2:
                             a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id1 + 2])
-                        elif id2 > len(cuerpoST) + 2:
+                        if id1 > len(cuerpoST) + 2:
                             a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
-                        else:
+                        if id1 > 2 and id1 < len(cuerpoST) + 2:
                             a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id1 + 2]) + "[...]"
-                else:
-                    id1 = aux_id[len(aux_id) - 1]
+                if i == len(aux_id)-1:
+                    Proc = False
+                    id1 = aux_id[len(aux_id)-1]
                     if id1 < 2:
                         a_devolver_snippet += " ".join(cuerpoST[id1 - id1:id1 + 2])
-                    elif id1 > len(cuerpoST) + 2:
+                    if id1 > len(cuerpoST) + 2:
                         a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id1 + (len(cuerpoST) - id1)])
-                    else:
+                    if id1 > 2 and id1 < len(cuerpoST) + 2:
                         a_devolver_snippet += "[...]" + " ".join(cuerpoST[id1 - 2:id1 + 2]) + "[...]"
+
             print("Snippet: {} ".format(a_devolver_snippet))
             print("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-")
         return len(result)
@@ -1009,68 +1043,52 @@ class SAR_Project:
         #Términos de la query
         t = {}
 
-        for a in query.keys():
-
-            term = a[0]
-
-            field = a[1]
-
-            #Ahora cabe buscar si se ha usado stemming o si se trata de consulta permuterm
-            if (self.use_stemming):
-                tt = self.stemterms[self.stemmer.stem(term)] 
-                for t1 in tt:
-                    t.setdefault(t1,field)
-            
-            #En caso de consulta permuterm
-
-            elif ("?" in term or "*" in term):
-                permuterms = self.get_permuterm(term,field)
-
-                for elemento in permuterms:
-                    aux = self.perterms[elemento]
-                    for  t2 in aux:
-                        t.setdefault(t2,field)
-            
-            else:
-                t.setdefault(term,field)
-            
+        if self.permuterm:
+            for part in query:
+                if isinstance(part, list):
+                    if any(d for d in part[1] if any(ds in d for ds in ["*", "?"])):
+                        part[1] = self.get_terms_permuterm(part[1])
+        if self.use_stemming:
+            for part in query:
+                if isinstance(part, list):
+                    if len(part[1]) == 1:
+                        part[1] = self.get_terms_stemming(part[1][0])
         #Declaramos lista de pesados para las noticias
-            Masquepesados = []
+        Masquepesados = []
 
         #Por cada noticia en el resultado...
         for noticia in result:
-
+            pesado_noticia = 0
             #Por cada término y campo (Pues hay que calcular una por una para todas la noticias) usando las calculadas anteriormente.
-            for tpla in t:
+            for part in query:
+                if isinstance(part,list):
+                    for term in part[1]:
+                        field = part[0]
+                    #Para el pesado usaremos el explicado en el tema 4 de teoría.
+                        #1er paso: Pesado del término
+                        tf = 0
+                        ft = 0
+                        if term in self.index[field]:
+                            for c in self.index[field][term].keys():
+                                if c == noticia:
+                                    ft += len(self.index[field][term][c])
+                            if ft > 0:
+                                tf = math.log10(ft)
+                            # 2do paso: Función global idf
+                            df = len(self.index[field][term].keys())
+                            idf = math.log10(len(self.news) / df)
 
-                term = tpla[0]
-
-                field = tpla[1]
-
-            #Para el pesado usaremos el explicado en el tema 4 de teoría.
-
-                #1er paso: Pesado del término
-                tf = 0
-                ft = self.weight[field][term].get(noticia,0)
-
-                if ft > 0:
-                    tf = math.log10(ft)
-                
-                #2do paso: Función global idf
-                df = len(self.weight[field][term])
-                idf = math.log10(self.news/df)
-
-                #3er paso: Acumular el pesado de cada término para obtener el total de la noticia
-                pesado_noticia = pesado_noticia + (tf*idf)
+                            # 3er paso: Acumular el pesado de cada término para obtener el total de la noticia
+                            pesado_noticia = pesado_noticia + (tf * idf)
 
             #Añadir los pesados sobre cada noticia
             self.weight_noti[noticia] = self.weight_noti.get(noticia,0) + pesado_noticia
             Masquepesados.append(pesado_noticia)
-            
+
             #Para finalizar, antes de devolver la lista, se ordena según el ranking de noticias.
             res = [i for _,i in sorted(zip(Masquepesados,result), reverse = True)]
+        return res
 
-            pass
         
         ###################################################
         ## COMPLETAR PARA FUNCIONALIDAD EXTRA DE RANKING ##
