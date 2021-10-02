@@ -19,3 +19,24 @@ def crear_matriz_levenshtein(begin, end):
     levmatrix[0,:] = np.asarray(list(range(len(begin)+1)))
     return levmatrix
 
+
+"""
+LEVENSHTEIN
+"""
+
+def levenshtein_basic(begin, end):
+    """
+    Distancia de levenshtein basica.
+    """
+    levmatrix = crear_matriz_levenshtein(begin, end)
+    for i in range(1,len(begin)+1):
+        for j in range(1,len(end)+1):
+            if begin[i-1] == end[j-1]:
+                #Caracteres iguales.
+                levmatrix[i,j] = levmatrix[i-1, j-1]
+            else:
+                #No es igual, cogemos el minimo y sumamos 1.
+                levmatrix[i,j] = min(levmatrix[i-1, j-1], min(levmatrix[i-1, j], levmatrix[i, j-1])) + 1
+    return levmatrix[len(end), len(begin)]
+            
+
