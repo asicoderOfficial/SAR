@@ -59,3 +59,38 @@ def levenshtein_restringed(begin, end, threshold):
                 return threshold + 1
     return levmatrix[len(end), len(begin)]
 
+
+"""
+Damerau-Levenshtein
+"""
+def dp_restricted_damerau_iterative(x, y):
+    """
+    Distancia de Damerau-Levenshtein restringida entre dos cadenas (algoritmo iterativo).
+    
+    """
+    n = len(x)
+    m = len(y)
+    columnas0 = np.zeros(m + 1, dtype=int)
+    columnas1 = np.zeros(m + 1, dtype=int)
+    columnasI = np.zeros(m + 1, dtype=int) # Columna que utilizaremos para el intercambio (columna más anterior)
+    #Inicializamos las columnas
+    for i in range(m+1):
+        columnas0[i] = i
+    #Recorremos las columnas
+    for i in range(1, n+1):
+        # El primer elemento de la columna será el coste acumulado
+        columnas1[0] = i
+        #Recorremos las filas
+        for j in range(1, m+1):
+            if x[i-1] == y[j-1]: #Si es el mismo elemento el coste es 0 y cogemos el de la diagonal
+                columnas1[j] = columnas0[j-1]
+            elif i > 1 and j > 1 and x[i-2] == y[j-1] and x[i-1] == y[j-2]: #Si podemos aplicar intercambio
+                columnas1[j] = min(columnas1[j-1], columnas0[j], columnas0[j-1], columnasI[j-2]) + 1
+            else:
+                columnas1[j] = min(columnas1[j-1], columnas0[j], columnas0[j-1]) + 1
+
+        #Avanzamos las columnas (estados)
+        columnasI = np.copy(columnas0)
+        columnas0 = np.copy(columnas1)
+
+    return columnas1[-1]
