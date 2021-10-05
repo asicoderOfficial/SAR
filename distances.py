@@ -65,7 +65,7 @@ Damerau-Levenshtein
 """
 def dp_restricted_damerau_iterative(x, y):
     """
-    Distancia de Damerau-Levenshtein restringida entre dos cadenas (algoritmo iterativo).
+    Distancia de Damerau-Levenshtein restringida entre dos cadenas (algoritmo iterativo bottom-up).
     
     """
     n = len(x)
@@ -94,3 +94,38 @@ def dp_restricted_damerau_iterative(x, y):
         columnas0 = np.copy(columnas1)
 
     return columnas1[-1]
+
+
+"""
+Damerau-Levenshtein (algoritmo recursivo top-down con memorizacion)
+"""
+def dp_restricted_damerau_backwards(x, y):
+
+ R = {}
+    def dr(z,k):
+        minn = None
+        if (not z) and (not k): #Caso base
+            R[z,k] = 0
+            return 0
+        if len(z) >= 1:
+            if (z[:-1], k) not in R: R[z[:-1], k] = dr(z[:-1], k)
+            minn = R[z[:-1], k] + 1
+        if len(k) >= 1:
+            if (z, k[:-1]) not in R: R[z, k[:-1]] = dr(z, k[:-1])
+            if minn is None:
+                minn = R[z, k[:-1]] + 1
+            else:
+                minn = min(minn, R[z, k[:-1]]+1)
+        if len(z) >= 1 and len(k) >= 1:
+            if len(z) > 1 and len(k) > 1:
+                if z[-2] == k[-1] and z[-1] == k[-2]: #Intercambio
+                    if (z[:-2], k[:-2]) not in R: R[z[:-2], k[:-2]] = dr(z[:-2], k[:-2])
+                    minn = min(minn, R[z[:-2], k[:-2]] + 1)
+            if z[-1] == k[-1]:
+                if (z[:-1], k[:-1]) not in R: R[z[:-1], k[:-1]] = dr(z[:-1], k[:-1]) #Sustitucion sin coste
+                minn = min(minn, R[z[:-1], k[:-1]])
+            else:
+                if (z[:-1], k[:-1]) not in R: R[z[:-1], k[:-1]] = dr(z[:-1], k[:-1])
+                minn = min(minn, R[z[:-1], k[:-1]] + 1)
+        return minn
+    return dr(x,y)
