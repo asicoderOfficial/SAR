@@ -59,3 +59,6 @@ def levenshtein_restringed(begin, end, threshold):
                 return threshold + 1
     return levmatrix[len(end), len(begin)]
 
+
+def levenshtein_trie(begin, end, threshold):
+    levmatrix = 
