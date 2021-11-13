@@ -175,4 +175,41 @@ def dp_restricted_damerau_backwards(x, y):
         return minn
     return dr(x,y)
 
-print(levenshtein_optimized('benyam', 'ephrem'))
+def dist_levenshtein_trie(str1, tr2, thres=2**31):
+    """
+    Distancia de levenshtein para la clase trie.
+    """
+    n = len(str1)
+    m = tr2.get_num_states()
+
+    dic = {}
+    # Creamos una matriz donde guardar resultados
+    dp = np.full((n+1, m), thres + 1)
+    # Inicializamos la primera fila
+    dp[0][0] = 0
+    for x in range(1, m):
+        dp[0][x] = dp[0][tr2.get_parent(x)] + 1
+    for i in range(1, n + 1):
+        for j in range(0, m):
+            if j == 0:
+                dp[i][0] = i
+            else:
+                if str1[i-1] == tr2.get_label(j):
+                    dp[i][j] = dp[i-1][tr2.get_parent(j)]
+                else:
+                    dp[i][j] = 1 + min(dp[i][tr2.get_parent(j)],    # Insertar
+                                    dp[i-1][j],                     # Eliminar
+                                    dp[i-1][tr2.get_parent(j)])     # Reemplazar
+        if np.min(dp[i]) > thres:
+            break
+    nodos = []
+    for i in tr2.iter_children(0):
+        nodos.append(i)
+    while(nodos):
+        nodo = nodos.pop()
+        if tr2.is_final(nodo):
+            if dp[-1][nodo] <= thres:
+                dic[tr2.get_output(nodo)] = dp[-1][nodo]
+        for i in tr2.iter_children(nodo):
+            nodos.append(i)
+    return dic
