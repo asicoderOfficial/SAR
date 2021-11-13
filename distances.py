@@ -60,5 +60,73 @@ def levenshtein_restringed(begin, end, threshold):
     return levmatrix[len(end), len(begin)]
 
 
-def levenshtein_trie(begin, end, threshold):
-    levmatrix = 
+"""
+Damerau-Levenshtein
+"""
+def dp_restricted_damerau_iterative(x, y):
+    """
+    Distancia de Damerau-Levenshtein restringida entre dos cadenas (algoritmo iterativo bottom-up).
+    
+    """
+    n = len(x)
+    m = len(y)
+    columnas0 = np.zeros(m + 1, dtype=int)
+    columnas1 = np.zeros(m + 1, dtype=int)
+    columnasI = np.zeros(m + 1, dtype=int) # Columna que utilizaremos para el intercambio (columna más anterior)
+    #Inicializamos las columnas
+    for i in range(m+1):
+        columnas0[i] = i
+    #Recorremos las columnas
+    for i in range(1, n+1):
+        # El primer elemento de la columna será el coste acumulado
+        columnas1[0] = i
+        #Recorremos las filas
+        for j in range(1, m+1):
+            if x[i-1] == y[j-1]: #Si es el mismo elemento el coste es 0 y cogemos el de la diagonal
+                columnas1[j] = columnas0[j-1]
+            elif i > 1 and j > 1 and x[i-2] == y[j-1] and x[i-1] == y[j-2]: #Si podemos aplicar intercambio
+                columnas1[j] = min(columnas1[j-1], columnas0[j], columnas0[j-1], columnasI[j-2]) + 1
+            else:
+                columnas1[j] = min(columnas1[j-1], columnas0[j], columnas0[j-1]) + 1
+
+        #Avanzamos las columnas (estados)
+        columnasI = np.copy(columnas0)
+        columnas0 = np.copy(columnas1)
+
+    return columnas1[-1]
+
+
+"""
+Damerau-Levenshtein (algoritmo recursivo top-down con memorizacion)
+"""
+def dp_restricted_damerau_backwards(x, y):
+
+ R = {}
+    def dr(z,k):
+        minn = None
+        if (not z) and (not k): #Caso base
+            R[z,k] = 0
+            return 0
+        if len(z) >= 1:
+            if (z[:-1], k) not in R: R[z[:-1], k] = dr(z[:-1], k)
+            minn = R[z[:-1], k] + 1
+        if len(k) >= 1:
+            if (z, k[:-1]) not in R: R[z, k[:-1]] = dr(z, k[:-1])
+            if minn is None:
+                minn = R[z, k[:-1]] + 1
+            else:
+                minn = min(minn, R[z, k[:-1]]+1)
+        if len(z) >= 1 and len(k) >= 1:
+            if len(z) > 1 and len(k) > 1:
+                if z[-2] == k[-1] and z[-1] == k[-2]: #Intercambio
+                    if (z[:-2], k[:-2]) not in R: R[z[:-2], k[:-2]] = dr(z[:-2], k[:-2])
+                    minn = min(minn, R[z[:-2], k[:-2]] + 1)
+            if z[-1] == k[-1]:
+                if (z[:-1], k[:-1]) not in R: R[z[:-1], k[:-1]] = dr(z[:-1], k[:-1]) #Sustitucion sin coste
+                minn = min(minn, R[z[:-1], k[:-1]])
+            else:
+                if (z[:-1], k[:-1]) not in R: R[z[:-1], k[:-1]] = dr(z[:-1], k[:-1])
+                minn = min(minn, R[z[:-1], k[:-1]] + 1)
+        return minn
+    return dr(x,y)
+>>>>>>> 80836267cd71986ba5e174f39f40bdc766a051d9
