@@ -26,7 +26,9 @@ LEVENSHTEIN
 
 def levenshtein_basic(begin, end):
     """
-    Distancia de levenshtein basica.
+    Distancia de levenshtein basica,
+    sin optimizacion de memoria, O(n*m),
+    siendo n=len(begin) y m=len(end).
     """
     levmatrix = crear_matriz_levenshtein(begin, end)
     for i in range(1,len(begin)+1):
@@ -39,6 +41,27 @@ def levenshtein_basic(begin, end):
                 levmatrix[i,j] = min(levmatrix[i-1, j-1], min(levmatrix[i-1, j], levmatrix[i, j-1])) + 1
     return levmatrix[len(end), len(begin)]
             
+
+def levenshtein_optimized(begin, end):
+    """
+    Distancia de levenshtein basica,
+    con optimizacion de memoria, O(n),
+    siendo n=len(begin).
+    """
+    a = list(range(len(begin)+1))
+    b = [1] + list(range(len(begin)))
+    for j in range(1, len(end)+1):
+        for i in range(1,len(begin)+1):
+            if begin[i-1] == end[i-1]:
+                b[i] = a[i-1]
+            else:
+                b[i] = min(b[i-1],
+                            a[i-1],
+                            a[i])
+        a = b
+        b = [1] + list(range(len(begin)))
+    return b[-1]
+
 
 def levenshtein_restringed(begin, end, threshold):
     """
@@ -100,8 +123,7 @@ def dp_restricted_damerau_iterative(x, y):
 Damerau-Levenshtein (algoritmo recursivo top-down con memorizacion)
 """
 def dp_restricted_damerau_backwards(x, y):
-
- R = {}
+    R = {}
     def dr(z,k):
         minn = None
         if (not z) and (not k): #Caso base
@@ -129,4 +151,5 @@ def dp_restricted_damerau_backwards(x, y):
                 minn = min(minn, R[z[:-1], k[:-1]] + 1)
         return minn
     return dr(x,y)
->>>>>>> 80836267cd71986ba5e174f39f40bdc766a051d9
+
+print(levenshtein_optimized('benyam', 'ephrem'))
