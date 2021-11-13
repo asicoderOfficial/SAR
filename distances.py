@@ -63,6 +63,29 @@ def levenshtein_optimized(begin, end):
     return b[-1]
 
 
+def levenshtein_optimized_restinged(begin, end, threshold):
+    """
+    Distancia de levenshtein basica,
+    con optimizacion de memoria, O(n),
+    siendo n=len(begin).
+    """
+    a = list(range(len(begin)+1))
+    b = [1] + list(range(len(begin)))
+    for j in range(1, len(end)+1):
+        for i in range(1,len(begin)+1):
+            if begin[i-1] == end[i-1]:
+                b[i] = a[i-1]
+            else:
+                b[i] = min(b[i-1],
+                            a[i-1],
+                            a[i])
+            if b[i] > threshold:
+                return threshold + 1
+        a = b
+        b = [1] + list(range(len(begin)))
+    return b[-1]
+
+
 def levenshtein_restringed(begin, end, threshold):
     """
     Distancia de levenshtein restringida por un threshold.
