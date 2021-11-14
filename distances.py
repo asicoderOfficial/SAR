@@ -141,6 +141,120 @@ def dp_restricted_damerau_iterative(x, y):
 
     return columnas1[-1]
 
+"""
+Damerau-levenstein intermedia hacia atras sin threshold.
+
+"""
+def dp_intermediate_damerau_backwards(x,y):
+    cte = 1  # Lo pone en el boletin.
+    n = len(x)
+    m = len(y)
+
+    # Vector de [0 .. m+1]
+    col1 = np.fromiter((x for x in range(m + 1)), dtype=int)
+    # Vectores para las siguientes columnas
+    col2 = np.zeros(m + 1, dtype=int)
+    col0 = np.zeros(m + 1, dtype=int)
+    col4 = np.zeros(m + 1, dtype=int)
+
+    for i in range(1, n + 1):
+        col2[0] = i
+        for j in range(1, m + 1):
+            if x[i - 1] == y[j - 1]:
+                col2[j] = col1[j - 1]
+            elif i > 1 and j > 1 and x[i - 2] == y[j - 1] and x[i - 1] == y[j - 2]:
+                col2[j] = 1 + min(col2[j - 1],  # Insertar
+                                 col1[j],  # Eliminar
+                                 col1[j - 1],  # Reemplazar
+                                 col0[j - 2])  # Intercambiar
+
+            elif (i > 1 and j > 1 + cte) and (x[i - 2] == y[j - 1] and x[i - 1] == y[j - 2 - cte]):
+                # de ab a bda
+                col2[j] = 1 + min(col2[j - 1],  # Insertar
+                                 col1[j],  # Eliminar
+                                 col1[j - 1],  # Reemplazar
+                                 col0[j - 3] + 1)  # Intercambiar
+
+            elif (i > 1 + cte and j > 1) and (x[i - 2 - cte] == y[j - 1] and x[i - 1] == y[j - 2]):
+                # de bda a ab
+                col2[j] = 1 + min(col2[j - 1],  # Insertar
+                                 col1[j],  # Eliminar
+                                 col1[j - 1],  # Reemplazar
+                                 col4[j - 2] + 1)  # Intercambiar
+
+            else:
+                col2[j] = 1 + min(col2[j - 1],  # Insertar
+                                 col1[j],  # Eliminar
+                                 col1[j - 1])  # Reemplazar
+        col4 = np.copy(col0)
+        col0 = np.copy(col1)
+        col1 = np.copy(col2)
+
+    return col1[-1]
+
+"""
+Damerau-levenstein intermedia hacia atras con threshold.
+
+"""
+def dp_intermediate_damerau_threshold(x,y,threshold=2**30):
+    cte = 1  # Lo pone en el boletin.
+    n = len(x)
+    m = len(y)
+
+    # Vector de [0 .. m+1]
+    col1 = np.fromiter((x for x in range(m + 1)), dtype=int)
+    # Vectores para las siguientes columnas
+    col2 = np.full(m + 1, threshold + 1)
+    col0 = np.full(m + 1, threshold + 1)
+    col4 = np.full(m + 1, threshold + 1)
+
+    for i in range(1, n + 1):
+        for j in range(0, m + 1):
+            if i - threshold <= j <= i + threshold:
+                if j == 0:
+                    col2[0] = i
+                else:
+                    if x[i - 1] == y[j - 1]:
+                        col2[j] = col1[j - 1]
+                    elif i > 1 and j > 1 and x[i - 2] == y[j - 1] and x[i - 1] == y[j - 2]:
+
+                        col2[j] = 1 + min(col2[j - 1],  # Insertar
+                                         col1[j],  # Eliminar
+                                         col1[j - 1],  # Reemplazar
+                                         col0[j - 2])  # Intercambiar
+
+                    elif (i > 1 and j > 1 + cte) and (
+                            x[i - 2] == y[j - 1] and x[i - 1] == y[j - 2 - cte]):
+                        # de ab a bda
+                        col2[j] = 1 + min(col2[j - 1],  # Insertar
+                                         col1[j],  # Eliminar
+                                         col1[j - 1],  # Reemplazar
+                                         col0[j - 3] + cte)  # Intercambiar
+
+                    elif (i > 1 + cte and j > 1) and (
+                            x[i - 2 - cte] == y[j - 1] and x[i - 1] == y[j - 2]):
+                        # de bda a ab
+                        col2[j] = 1 + min(col2[j - 1],  # Insertar
+                                         col1[j],  # Eliminar
+                                         col1[j - 1],  # Reemplazar
+                                         col4[j - 2] + cte)  # Intercambiar
+
+                    else:
+
+                        col2[j] = 1 + min(col2[j - 1],  # Insertar
+                                         col1[j],  # Eliminar
+                                         col1[j - 1])  # Reemplazar
+
+        if np.min(col2) > threshold:
+            return np.min(col2)
+
+        col4 = np.copy(col0)
+        col0 = np.copy(col1)
+        col1 = np.copy(col2)
+        col2 = np.full(m + 1, threshold + 1)
+
+    return col1[-1]
+
 
 """
 Damerau-Levenshtein (algoritmo recursivo top-down con memorizacion)
