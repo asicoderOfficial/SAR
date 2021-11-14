@@ -105,9 +105,52 @@ def levenshtein_restringed(begin, end, threshold):
                 return threshold + 1
     return levmatrix[len(end), len(begin)]
 
+"""
+Version iterativa de la distancia damerau restringida  con threshold.
 
 """
-Damerau-Levenshtein
+def dp_restricted_damerau_threshold(x, y, threshold=2**30):
+    n = len(x)
+    m = len(y)
+
+    # Creamos un vector inicializado a [0 .. m+1]
+    col1 = np.fromiter((i for i in range(m + 1)), dtype=int)
+    # Reservamos un vector para el cómputo de las siguientes columnas
+    col2 = np.full(m + 1, threshold + 1)
+    colI = np.full(m + 1, threshold + 1)
+
+    for i in range(1, n + 1):
+        for j in range(0, m + 1):
+            if i - threshold <= j <= i + threshold:
+                if j == 0:
+                    col2[0] = i
+                else:
+                    if x[i - 1] == y[j - 1]:
+                        col2[j] = col1[j - 1]
+                    elif i > 1 and j > 1 and x[i - 2] == y[j - 1] and x[i - 1] == y[j - 2]:
+                        col2[j] = 1 + min(col2[j - 1],  # Insertar
+                                         col1[j],  # Eliminar
+                                         col1[j - 1],  # Reemplazar
+                                         colI[j - 2])  # Intercambiar
+                    else:
+                        col2[j] = 1 + min(col2[j - 1],  # Insertar
+                                         col1[j],  # Eliminar
+                                         col1[j - 1])  # Reemplazar
+
+        if np.min(col2) > threshold:
+            return np.min(col2)
+
+        colI = np.copy(col1)
+        col1 = np.copy(col2)
+        col2 = np.full(m + 1, threshold + 1)
+
+    return col1[-1]
+    return 0
+
+
+
+"""
+Damerau-Levenshtein 
 """
 def dp_restricted_damerau_iterative(x, y):
     """
