@@ -327,3 +327,34 @@ def dist_levenshtein_trie(str1, tr2, thres=2**31):
         for i in tr2.iter_children(nodo):
             nodos.append(i)
     return dic
+
+
+def damerau_general(begin, end):
+    """
+    Distancia de levenshtein basica,
+    con optimizacion de memoria, O(n),
+    siendo n=len(begin).
+    """
+    d = {}
+    lenbegin = len(begin)
+    lenend = len(end)
+    for i in xrange(-1,lenbegin+1):
+        d[(i,-1)] = i+1
+    for j in xrange(-1,lenend+1):
+        d[(-1,j)] = j+1
+
+    for i in xrange(lenbegin):
+        for j in xrange(lenend):
+            if begin[i] == end[j]:
+                cost = 0
+            else:
+                cost = 1
+            d[(i,j)] = min(
+                           d[(i-1,j)] + 1, # deletion
+                           d[(i,j-1)] + 1, # insertion
+                           d[(i-1,j-1)] + cost, # substitution
+                          )
+            if i and j and begin[i]==end[j-1] and begin[i-1] == end[j]:
+                d[(i,j)] = min (d[(i,j)], d[i-2,j-2] + cost) # transposition
+
+    return d[lenbegin-1,lenend-1]
