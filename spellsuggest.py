@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
-
+from distances import levenshtein_optimized_restinged, dp_restricted_damerau_iterative, dp_intermediate_damerau_threshold
+from levels import level_flat
 from trie import Trie
 
 class SpellSuggester:
@@ -55,7 +56,26 @@ class SpellSuggester:
         assert distance in ["levenshtein", "restricted", "intermediate"]
 
         results = {} # diccionario termino:distancia
-        # TODO
+        lengword = len(term) #Agilizar dentro del bucle.
+        MetDist = {}
+        if (distance == "levensthein"):
+            MetDist[distance] = levenshtein_optimized_restinged
+        elif (distance == "restricted" ):
+            MetDist[distance] = dp_restricted_damerau_iterative
+        elif (distance == "intermediate"):
+            MetDist[distance] = dp_intermediate_damerau_threshold
+        
+        for w in self.vocabulary:
+            if (distance == "levensthein"):
+                if(level_flat(term,w) <= threshold)
+                    if (abs(len(w)-lengword) <= threshold):
+                        MetDist[distance](term,w, threshold)
+                        if (Dist <= threshold and Dist != None):
+                        #No estoy seguro de si esto está ok, pero implemento diccionario para --> distancia:[word]}
+                            if (Dist not in results):
+                                results[Dist] = [w]
+                            else:
+                                results[Dist].append(w)
         return results
 
 class TrieSpellSuggester(SpellSuggester):
