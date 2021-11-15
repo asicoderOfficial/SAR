@@ -27,6 +27,10 @@ if __name__ == "__main__":
     parser.add_argument('-O', '--positional', dest='positional', action='store_true', default=False, 
                     help='compute positional index.')
 
+    # Añadimos el argumento para incluir un objeto TrieSpellSuggester
+    parser.add_argument('-G', '--suggest', dest='suggest', action='store_true', default=False, 
+                    help='compute suggest data.')
+
     args = parser.parse_args()
 
     newsdir = args.newsdir

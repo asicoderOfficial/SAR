@@ -40,7 +40,6 @@ if __name__ == "__main__":
     parser.add_argument('-R', '--rank', dest='rank', action='store_true', default=False, 
                     help='rank results. Does not apply with -C and -T options.')
 
-
     group1 = parser.add_mutually_exclusive_group()
     group1.add_argument('-Q', '--query', dest='query', metavar= 'query', type=str, action='store',
                     help='query.')
@@ -48,6 +47,10 @@ if __name__ == "__main__":
                     help='file with queries.')
     group1.add_argument('-T', '--test', dest='test', metavar= 'test', type=str, action='store',
                     help='file with queries and results, for testing.')
+
+    # Añadimos un argumento para la búsqueda de términos aproximados
+    parser.add_argument('-B', '--busq', dest='busq', metavar = 'busq', type=str, action='store',
+                    help="busqueda aproximada ('levenshtein_thres' o 'levenshtein-trie').")
 
     args = parser.parse_args()
 
@@ -58,7 +61,7 @@ if __name__ == "__main__":
     searcher.set_ranking(args.rank)
     searcher.set_showall(args.all)
     searcher.set_snippet(args.snippet)
-
+    searcher.set_busq(args.busq)
 
     # se debe contar o mostrar resultados?
     if args.count is True:
