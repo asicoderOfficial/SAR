@@ -131,8 +131,7 @@ def dp_restricted_damerau_threshold(x, y, threshold=2**30):
                         columnas2[j] = 1 + min(columnas2[j - 1], columnas1[j], columnas1[j - 1], columnasI[j - 2])
                     else:
                         columnas2[j] = 1 + min(columnas2[j - 1], columnas1[j], columnas1[j - 1])
-            elif j > i + threshold:
-                break
+
         if np.min(columnas2) > threshold:
             return np.min(columnas2)
 
@@ -145,9 +144,9 @@ def dp_restricted_damerau_threshold(x, y, threshold=2**30):
 
 
 """
-Damerau-Levenshtein 
+Damerau-Levenshtein restringidahacia atras sin threshold.
 """
-def dp_restricted_damerau_iterative(x, y):
+def dp_restricted_damerau_backwards(x, y):
     """
     Distancia de Damerau-Levenshtein restringida entre dos cadenas (algoritmo iterativo bottom-up).
     
@@ -257,8 +256,7 @@ def dp_intermediate_damerau_threshold(x,y,threshold=2**30):
                     else:
 
                         col2[j] = 1 + min(col2[j - 1],  col1[j], col1[j - 1])
-            elif j > i + threshold:
-                break
+
         if np.min(col2) > threshold:
             return np.min(col2)
         col4 = np.copy(colI)
@@ -270,7 +268,91 @@ def dp_intermediate_damerau_threshold(x,y,threshold=2**30):
 
 
 
+def dp_intermediate_damerau_trie(x, tri, threshold = 2**30):
 
+    nodes = np.fromiter((i for i in range(0,tri.get_num_states())),dtype=int)
+    col0 = np.zeros(trie.get_num_states(), dtype=int)
+    col1 = np.zeros(trie.get_num_states(), dtype=int)
+    col2 = np.zeros(trie.get_num_states(), dtype=int)
+    col3 = np.zeros(trie.get_num_states(), dtype=int)
+    col0[0] = col1[0] + 1
+    for j in nodes[1:]:
+        col1[j] = col1[trie.get_parent(j)] + 1
+
+
+    for j in nodes[1:]:
+        col0[j] = min(col0[trie.get_parent(j)] + 1, col1[j] + 1, col1[trie.get_parent(j)] + (trie.get_label(j) != x[0]))
+
+    for i in range(1, len(x)):
+        col3, col2, col1, col0 = col2, col1, col0, col3
+        col0[0] = col1[0] + 1
+        for j in nodes[1:]:
+            aux = min(col0[trie.get_parent(j)] + 1, col1[j] + 1, col1[trie.get_parent(j)] + (trie.get_label(j) != x[i]))
+
+            if (i > 1 and trie.get_parent(trie.get_parent(j)) != -1 and x[i] == trie.get_label(trie.get_parent(j))
+                    and x[i - 2] == trie.get_label(j)
+                    and col3[trie.get_parent(trie.get_parent(j))] + 2 < aux):
+                aux = col3[trie.get_parent(trie.get_parent(j))] + 2
+
+            if (trie.get_parent(trie.get_parent(trie.get_parent(j))) != -1 and trie.get_label(j) == x[i - 1]
+                    and trie.get_label(trie.get_parent(trie.get_parent(j))) == x[i]
+                    and col2[trie.get_parent(trie.get_parent(trie.get_parent(j)))] + 2 < aux):
+                aux = col2[trie.get_parent(trie.get_parent(trie.get_parent(j)))] + 2
+
+            if (x[i] == trie.get_label(trie.get_parent(j)) and x[i - 1] == trie.get_label(j) and
+                    trie.get_parent(trie.get_parent(j)) != -1 and col2[trie.get_parent(trie.get_parent(j))] <= aux):
+                aux = col2[trie.get_parent(trie.get_parent(j))] + 1
+            col0[j] = aux
+    dic = {}
+    for node in list(range(0, trie.get_num_states())):
+        if trie.is_final(node) and col0[node] <= threshold:
+            dic[trie.get_output(node)] = col0[node]
+    return [(k, v) for k, v in dic.items()]
+
+def dp_restricted_damerau_trie(x, tri, threshold = 2**30):
+    n = len(x)
+    m = tri.get_num_states()
+    dic = {}
+    # Creamos un vector inicializado a [0 .. m+1]
+    #columnas1 = np.fromiter((i for i in range(m + 1)), dtype=int)
+    columnas1 = np.zeros(m+1,dtype=int)
+    for i in range(1,m):
+        columnas1[i] = columnas1[tri.get_parent(i)] + 1
+    # Reservamos un vector para el cómputo de las siguientes columnas
+    columnas2 = np.full(m + 1, 0)  # Ahora en vez de inicializarlo a 0 lo inicializamos a threshold+1
+    columnasI = np.full(m + 1, 0)
+
+    for i in range(1, n + 1):  # Desplazamos la matriz n veces.
+        for j in range(0, m + 1):
+                if j == 0:
+                    columnas2[0] = i
+                else:
+                    if x[i - 1] == tri.get_label(j):  # Si es el mismo elemento el coste es 0 y cogemos el de la diagonal
+                        columnas2[j] = columnas1[tri.get_parent(j)]
+                    elif i > 1 and j > 1 and x[i - 2] == tri.get_label(j) and \
+                            x[i - 1] == tri.get_label(tri.get_parent(j)):  # Si podemos aplicar intercambio
+                        columnas2[j] = 1 + min(columnas2[tri.get_parent(j)], columnas1[j], columnas1[tri.get_parent(j)],
+                                               columnasI[tri.get_parent(tri.get_parent(j))])
+                    else:
+                        columnas2[j] = 1 + min(columnas2[tri.get_parent(j)], columnas1[j], columnas1[tri.get_parent(j)])
+        if np.min(columnas2) > threshold:
+            break
+
+        columnasI = np.copy(columnas1)
+        columnas1 = np.copy(columnas2)
+        columnas2 = np.full(m + 1, threshold + 1)
+    nodos = []
+    for i in tri.iter_children(0):
+        nodos.append(i)
+    while (nodos):
+        nodo = nodos.pop()
+        if tri.is_final(nodo):
+            if columnas1[nodo] <= threshold:
+                dic[tri.get_output(nodo)] = columnas1[nodo]
+        for i in tri.iter_children(nodo):
+            nodos.append(i)
+    if dic == {}: return []
+    return [(k, v) for k, v in dic.items()]
 
 def dist_levenshtein_trie(str1, tr2, thres=2**31):
     """
