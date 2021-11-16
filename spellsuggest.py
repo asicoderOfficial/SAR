@@ -62,53 +62,51 @@ class SpellSuggester:
         if threshold == None: threshold = 2**31
         results = {} # diccionario termino:distancia
         lengword = len(term) #Agilizar dentro del bucle.
-        if (distance == "levensthein"):
-            DistUt= dist.levenshtein_optimized_restinged
+        if (distance == "levenshtein"):
+            DistUt= dist.levenshtein_restringed
         elif (distance == "restricted" ):
             DistUt = dist.dp_restricted_damerau_threshold
         elif (distance == "intermediate"):
             DistUt = dist.dp_intermediate_damerau_threshold
         
         for w in self.vocabulary:
-            if (distance == "levensthein"):
-                if(level_flat(term,w) <= threshold):
-                    if (abs(len(w)-lengword) <= threshold):
-                        Dist = DistUt(term,w, threshold)
-                        if (Dist <= threshold and Dist != None):
-                        #Diccionario implementado para --> {word:distancia}
-                            if (w not in results):
-                                results[w] = Dist
+            if(level_flat(term,w) <= threshold):
+                if (abs(len(w)-lengword) <= threshold):
+                    Dist = DistUt(term,w, threshold)
+                    if (Dist <= threshold and Dist != None):
+                    #Diccionario implementado para --> {word:distancia}
+                        if (w not in results):
+                            results[w] = Dist
         return results
 
 class TrieSpellSuggester(SpellSuggester):
     def suggest(self, term, distance="levenshtein", threshold=None):
-        if distance == "levenshtein":
-            results = {}
-            if threshold == None: 
-                threshold = 2**31
-            a = self.trie.get_num_states()
-            b = len(term)
-            M1 = np.zeros(a)
-            M2 = np.zeros(a)
-            for i in range(1,a):
-                M1[i]= M1[self.trie.get_parent(i)] + 1
+        results = {}
+        if threshold == None:
+            threshold = 2**31
+        a = self.trie.get_num_states()
+        b = len(term)
+        M1 = np.zeros(a)
+        M2 = np.zeros(a)
+        for i in range(1,a):
+            M1[i]= M1[self.trie.get_parent(i)] + 1
 
-            for col in range(1,b + 1):
-                M2[0]=col
-                for fil in range(1,a) :
-                    cost = not term[col-1] == self.trie.get_label(fil)
-                    M2[fil] = min(M1[fil] + 1,
-                                M2[self.trie.get_parent(fil)] + 1,
-                                M1[self.trie.get_parent(fil)] + cost)
-                if min(M2) > threshold:
-                     return {}
-                M1, M2 = M2, M1
+        for col in range(1,b + 1):
+            M2[0]=col
+            for fil in range(1,a) :
+                cost = not term[col-1] == self.trie.get_label(fil)
+                M2[fil] = min(M1[fil] + 1,
+                            M2[self.trie.get_parent(fil)] + 1,
+                            M1[self.trie.get_parent(fil)] + cost)
+            if min(M2) > threshold:
+                 return {}
+            M1, M2 = M2, M1
 
-            for i in range(a):
-                if self.trie.is_final(i):
-                    if M1[i] <= threshold: results[self.trie.get_output(i)] = M1[i]
-            return results
-        else: return super().suggest(term, distance, threshold)
+        for i in range(a):
+            if self.trie.is_final(i):
+                if M1[i] <= threshold: results[self.trie.get_output(i)] = M1[i]
+        return results
+        return super().suggest(term, distance, threshold)
 
     """
     Clase que implementa el método suggest para la búsqueda de términos y añade el trie
@@ -168,7 +166,7 @@ if __name__ == "__main__":
                     thres.append(y)
                     mres.append(z)
                     timeres.append(t)
-                    print('Trie: Sí   Tamaño: '+ str(x) + '   Threshold: ' + str(y) + '   Método: levenshtein   :   ' + str(t))
+                    print('Trie: Sí   Tamaño: '+ str(x) + '   Threshold: ' + str(y) + '   Método: ' + str(z)   + '   :    ' + str(t))
 
     #Creamos el DataFrame con los resultados de todas las ejecuciones.
     #Agrupamos por tam y m.
