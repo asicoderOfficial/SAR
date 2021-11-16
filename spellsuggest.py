@@ -67,13 +67,13 @@ class SpellSuggester:
         elif (distance == "restricted" ):
             DistUt = dist.dp_restricted_damerau_threshold
         elif (distance == "intermediate"):
-            MetDist[distance] = dist.dp_intermediate_damerau_threshold
+            DistUt = dist.dp_intermediate_damerau_threshold
         
         for w in self.vocabulary:
             if (distance == "levensthein"):
                 if(level_flat(term,w) <= threshold):
                     if (abs(len(w)-lengword) <= threshold):
-                        DistUt(term,w, threshold)
+                        Dist = DistUt(term,w, threshold)
                         if (Dist <= threshold and Dist != None):
                         #Diccionario implementado para --> {word:distancia}
                             if (w not in results):
