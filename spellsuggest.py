@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pandas as pd
 import re
 from distances import levenshtein_optimized_restinged, dp_restricted_damerau_threshold, dp_intermediate_damerau_threshold
 from levels import level_flat
@@ -118,10 +119,18 @@ class TrieSpellSuggester(SpellSuggester):
         self.trie = Trie(self.vocabulary)
     
 if __name__ == "__main__":
-    pal = ("casa", "senor", "jabón", "constitución", "ancho", "savaedra", "vicios", "quixot", "s3afg4ew")
-    tam = (2500,5000, 10000, 15000, 20000, 25000, 30000, 35000)
-    th = (1, 2, 3, 4, 5, 7)
+    pal = ("casa", "senor", "constitución", "ancho", "savaedra", "quixot", "s3afg4ew")
+    tam = (2500, 10000, 35000)
+    th = (1, 2, 4, 5, 7)
     m = ("intermediate", "restricted", "levenshtein")
+
+    #Listas con las configuraciones usadas, y el tiempo obtenido.
+    palres = []
+    tamres = []
+    thres = []
+    mres = []
+    timeres = []
+
     vocab_file_path = "./quijote.txt"
     tokenizer = re.compile("\W+")
     with open(vocab_file_path, "r", encoding='utf-8') as fr:
@@ -140,12 +149,29 @@ if __name__ == "__main__":
                     tini = time.process_time()
                     spellsuggester.suggest(p, z, threshold = y)
                     t = time.process_time() - tini
+                    #Obtenemos los datos a insertar luego en el DataFrame.
+                    palres.append(p)
+                    tamres.append(x)
+                    thres.append(y)
+                    mres.append(z)
+                    timeres.append(t)
                     print('Trie: No   Tamaño: '+ str(x) + '   Threshold: ' + str(y) + '   Método: ' + z + '   :   ' + str(t))
             spellsuggester = TrieSpellSuggester("./quijote.txt", sorted_vocab[:x])
-            for y in th:
-                tini = time.process_time()
-                spellsuggester.suggest(p, "levenshtein", threshold = y)
-                t = time.process_time() - tini
-                print('Trie: Sí   Tamaño: '+ str(x) + '   Threshold: ' + str(y) + '   Método: levenshtein   :   ' + str(t))
+            for z in m:
+                for y in th:
+                    tini = time.process_time()
+                    spellsuggester.suggest(p, z, threshold = y)
+                    t = time.process_time() - tini
+                    #Obtenemos los datos a insertar luego en el DataFrame.
+                    palres.append(p)
+                    tamres.append(x)
+                    thres.append(y)
+                    mres.append(z)
+                    timeres.append(t)
+                    print('Trie: Sí   Tamaño: '+ str(x) + '   Threshold: ' + str(y) + '   Método: levenshtein   :   ' + str(t))
 
+    #Creamos el DataFrame con los resultados de todas las ejecuciones.
+    #Agrupamos por tam y m.
+    df = pd.DataFrame({'palabra':palres, 'tamanyo':tamres, 'threshold':thres, 'distancia':mres, 'tiempo':timeres})
+    df.to_csv('tiempos1.csv')
     
