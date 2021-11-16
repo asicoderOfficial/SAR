@@ -117,7 +117,8 @@ class TrieSpellSuggester(SpellSuggester):
     def __init__(self, vocab_file_path,vocab=None):
         super().__init__(vocab_file_path,vocab)
         self.trie = Trie(self.vocabulary)
-    
+
+
 if __name__ == "__main__":
     pal = ("casa", "senor", "constitución", "ancho", "savaedra", "quixot", "s3afg4ew")
     tam = (2500, 10000, 35000)
