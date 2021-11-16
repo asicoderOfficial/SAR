@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 import re
-from distances import levenshtein_optimized_restinged, dp_restricted_damerau_threshold, dp_intermediate_damerau_threshold
+import distancias as dist
 from levels import level_flat
 from trie import Trie
 import collections
@@ -62,21 +62,20 @@ class SpellSuggester:
         if threshold == None: threshold = 2**31
         results = {} # diccionario termino:distancia
         lengword = len(term) #Agilizar dentro del bucle.
-        MetDist = {}
         if (distance == "levensthein"):
-            MetDist[distance] = levenshtein_optimized_restinged
+            DistUt= dist.levenshtein_optimized_restinged
         elif (distance == "restricted" ):
-            MetDist[distance] = dp_restricted_damerau_threshold
+            DistUt = dist.dp_restricted_damerau_threshold
         elif (distance == "intermediate"):
-            MetDist[distance] = dp_intermediate_damerau_threshold
+            MetDist[distance] = dist.dp_intermediate_damerau_threshold
         
         for w in self.vocabulary:
             if (distance == "levensthein"):
                 if(level_flat(term,w) <= threshold):
                     if (abs(len(w)-lengword) <= threshold):
-                        MetDist[distance](term,w, threshold)
+                        DistUt(term,w, threshold)
                         if (Dist <= threshold and Dist != None):
-                        #No estoy seguro de si esto está ok, pero implemento diccionario para --> word:distancia}
+                        #Diccionario implementado para --> {word:distancia}
                             if (w not in results):
                                 results[w] = Dist
         return results
