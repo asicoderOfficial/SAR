@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 import re
-import distancias as dist
+import distances as dist
 from levels import level_flat
 from trie import Trie
 import collections
