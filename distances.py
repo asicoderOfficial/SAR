@@ -31,6 +31,7 @@ def levenshtein_basic(begin, end):
     siendo n=len(begin) y m=len(end).
     """
     levmatrix = crear_matriz_levenshtein(begin, end)
+    levmatrix = np.transpose(levmatrix)
     for i in range(1,len(begin)+1):
         for j in range(1,len(end)+1):
             if begin[i-1] == end[j-1]:
@@ -39,7 +40,7 @@ def levenshtein_basic(begin, end):
             else:
                 #No es igual, cogemos el minimo y sumamos 1.
                 levmatrix[i,j] = min(levmatrix[i-1, j-1], min(levmatrix[i-1, j], levmatrix[i, j-1])) + 1
-    return levmatrix[len(end), len(begin)]
+    return levmatrix[len(begin), len(end)]
             
 
 def levenshtein_optimized(begin, end):
@@ -50,8 +51,8 @@ def levenshtein_optimized(begin, end):
     """
     a = list(range(len(begin)+1))
     b = [1] + list(range(len(begin)))
-    for j in range(1, len(end)+1):
-        for i in range(1,len(begin)+1):
+    for j in range(1, len(begin)+1):
+        for i in range(1,len(end)+1):
             if begin[i-1] == end[i-1]:
                 b[i] = a[i-1]
             else:
@@ -59,11 +60,11 @@ def levenshtein_optimized(begin, end):
                             a[i-1],
                             a[i])
         a = b
-        b = [1] + list(range(len(begin)))
+        b = [j] + list(range(len(begin)))
     return b[-1]
 
 
-def levenshtein_optimized_restinged(begin, end, threshold):
+def levenshtein_optimized_restringed(begin, end, threshold):
     """
     Distancia de levenshtein basica,
     con optimizacion de memoria, O(n),
@@ -71,8 +72,8 @@ def levenshtein_optimized_restinged(begin, end, threshold):
     """
     a = list(range(len(begin)+1))
     b = [1] + list(range(len(begin)))
-    for j in range(1, len(end)+1):
-        for i in range(1,len(begin)+1):
+    for j in range(1, len(begin)+1):
+        for i in range(1,len(end)+1):
             if begin[i-1] == end[i-1]:
                 b[i] = a[i-1]
             else:
@@ -82,7 +83,7 @@ def levenshtein_optimized_restinged(begin, end, threshold):
             if b[i] > threshold:
                 return threshold + 1
         a = b
-        b = [1] + list(range(len(begin)))
+        b = [j] + list(range(len(begin)))
     return b[-1]
 
 
@@ -427,3 +428,8 @@ def damerau_general(begin, end):
                 d[(i,j)] = min (d[(i,j)], d[i-2,j-2] + cost) # transposition
 
     return d[lenbegin-1,lenend-1]
+
+print(levenshtein_basic('benyam', 'ephre'))
+print(levenshtein_optimized('benyam', 'ephre'))
+print(levenshtein_optimized_restringed('benyam', 'ephre', 10))
+print(levenshtein_restringed('benyam', 'ephre', 10))
