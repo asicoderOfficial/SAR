@@ -63,7 +63,7 @@ class SpellSuggester:
         results = {} # diccionario termino:distancia
         lengword = len(term) #Agilizar dentro del bucle.
         if (distance == "levenshtein"):
-            DistUt= dist.levenshtein_optimized_restringed
+            DistUt= dist.dp_levenshtein_threshold
         elif (distance == "restricted" ):
             DistUt = dist.dp_restricted_damerau_threshold
         elif (distance == "intermediate"):
