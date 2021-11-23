@@ -58,7 +58,7 @@ class SpellSuggester:
                 puede utilizarse con los algoritmos de distancia mejorada de la tarea 2
                 o filtrando la salida de las distancias de la tarea 2
         """
-        assert distance in ["levenshtein", "restricted", "intermediate"]
+        if distance not in ["levenshtein", "restricted", "intermediate"]: raise ValueError("La distancia no es correcta")
         if threshold == None: threshold = 2**31
         results = {} # diccionario termino:distancia
         lengword = len(term) #Agilizar dentro del bucle.
