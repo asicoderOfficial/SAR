@@ -128,6 +128,7 @@ if __name__ == "__main__":
     thres = []
     mres = []
     timeres = []
+    trie = []
 
     vocab_file_path = "./quijote.txt"
     tokenizer = re.compile("\W+")
@@ -153,6 +154,7 @@ if __name__ == "__main__":
                     thres.append(y)
                     mres.append(z)
                     timeres.append(t)
+                    trie.append('Yes')
                     print('Trie: No   Tamaño: '+ str(x) + '   Threshold: ' + str(y) + '   Método: ' + z + '   :   ' + str(t))
             spellsuggester = TrieSpellSuggester("./quijote.txt", sorted_vocab[:x])
             for z in m:
@@ -166,10 +168,11 @@ if __name__ == "__main__":
                     thres.append(y)
                     mres.append(z)
                     timeres.append(t)
+                    trie.append('No')
                     print('Trie: Sí   Tamaño: '+ str(x) + '   Threshold: ' + str(y) + '   Método: ' + str(z)   + '   :    ' + str(t))
 
     #Creamos el DataFrame con los resultados de todas las ejecuciones.
     #Agrupamos por tam y m.
-    df = pd.DataFrame({'palabra':palres, 'tamanyo':tamres, 'threshold':thres, 'distancia':mres, 'tiempo':timeres})
+    df = pd.DataFrame({'palabra':palres, 'tamanyo':tamres, 'threshold':thres, 'distancia':mres, 'trie':trie, 'tiempo':timeres})
     df.to_csv('tiempos1.csv')
     
