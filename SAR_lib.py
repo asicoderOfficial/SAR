@@ -65,6 +65,7 @@ class SAR_Project:
         self.busq = None  # valor por defecto, cuando no se usa la busqueda, se cambia con self.set_busq()
         self.threshold = 5  # valor por defecto se cambia con self.set_threshold
         self.trie = None # valor por defecto se cambia con self.make_trie
+        self.use_trie = False # Valor por defecto, indica si en la consulta se busca con trie o no.
     ###############################
     ###                         ###
     ###      CONFIGURACION      ###
@@ -602,8 +603,12 @@ class SAR_Project:
         elif len(terms) > 1:
             pos = self.get_positionals(terms, field)
             if not pos:  # -> ALT
+
                 pos = []   # por si acaso
-                spg = SpellSuggester("", list(self.index['article'].keys()))
+                if self.use_trie:
+                    spg = TrieSpellSuggester("", list(self.index['article'].keys()))
+                else:
+                    spg = SpellSuggester("", list(self.index['article'].keys()))
                 posiblesterms = []
                 termsaux = []
                 for t in terms: #SI una palabra no se encuentra en los articulos de las noticias (posiblemente sea un error)
@@ -637,7 +642,11 @@ class SAR_Project:
         else:  # Si no hemos encontrado ningun resultado en las posting lists -> ALT
             if busq is None:
                 return []
-            spg = SpellSuggester("", list(self.index['article'].keys()))
+            if self.use_trie:
+                spg = TrieSpellSuggester("", list(self.index['article'].keys()))
+            else:
+                spg = SpellSuggester("", list(self.index['article'].keys()))
+
             postinglists = []
             for t in spg.suggest(terms[0], self.busq, self.threshold):
                 postinglists += self.get_posting(t,field)

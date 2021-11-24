@@ -310,6 +310,8 @@ def dp_intermediate_damerau_trie(x, trie, threshold = 2**30):
                     trie.get_parent(trie.get_parent(j)) != -1 and col2[trie.get_parent(trie.get_parent(j))] <= aux):
                 aux = col2[trie.get_parent(trie.get_parent(j))] + 1
             col0[j] = aux
+        if min(col0) > threshold:
+            break
     dic = {}
     for node in list(range(0, trie.get_num_states())):
         if trie.is_final(node) and col0[node] <= threshold:
