@@ -15,5 +15,5 @@ del df['distancia']
 del df['trie']
 df2 = pd.pivot_table(df, values='tiempo', index=['tamanyo', 'distancia-trie'], columns='threshold')
 print(df2)
-df2.to_csv('CSV_FINAL.csv')
+df2.to_csv('CSV_FINAL_COJONUDOLAPUTAPOLLA.csv')
 #df.to_csv('tiempos_stats4.csv')
