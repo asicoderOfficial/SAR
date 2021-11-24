@@ -13,7 +13,7 @@ df['distancia'] = df['distancia'].str.replace('levenshtein','l')
 df['distancia-trie'] = df['distancia'] + df['trie']
 del df['distancia']
 del df['trie']
-df2 = pd.pivot_table(df, values='tiempo', index=['tamanyo', 'distancia-trie'], columns='threshold')
+df2 = pd.pivot_table(df, values='media_trie-distancia', index=['tamanyo', 'distancia-trie'], columns='threshold')
 print(df2)
-df2.to_csv('CSV_FINAL_COJONUDOLAPUTAPOLLA.csv')
+df2.to_csv('CSV_FINAL.csv')
 #df.to_csv('tiempos_stats4.csv')
