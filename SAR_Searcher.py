@@ -50,7 +50,10 @@ if __name__ == "__main__":
 
     # Añadimos un argumento para la búsqueda de términos aproximados
     parser.add_argument('-B', '--busq', dest='busq', metavar = 'busq', type=str, action='store',
-                    help="busqueda aproximada ('levenshtein_thres' o 'levenshtein-trie').")
+                    help="busqueda aproximada ('levenshtein' o 'restricted' o intermediate).")
+    # Añadimos un argumento para la búsqueda de términos aproximados
+    parser.add_argument('-T', '--thresh', dest='thresh', metavar='thresh', type=str, action='store',
+                        help="threshold para la busqueda aproximada, si no se indica es 5 por defecto.).")
 
     args = parser.parse_args()
 
@@ -62,6 +65,7 @@ if __name__ == "__main__":
     searcher.set_showall(args.all)
     searcher.set_snippet(args.snippet)
     searcher.set_busq(args.busq)
+    searcher.set_threshold(args.thresh)
 
     # se debe contar o mostrar resultados?
     if args.count is True:

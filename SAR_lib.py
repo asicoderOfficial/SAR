@@ -2,6 +2,7 @@ import json
 from nltk.stem.snowball import SnowballStemmer
 import os
 import re
+import spellsugest as sg
 import math
 class SAR_Project:
     """
@@ -61,7 +62,9 @@ class SAR_Project:
         self.multifield = False # valor por defecto, se cambia con self.set_multifield()
         self.positional = False # valor por defecto, se cambia con self.set_positional()
         self.permuterm = False # valor por defecto, se cambia con self.set_permuterm()
-
+        self.busq = None  # valor por defecto se cambia con self.set_busq()
+        self.threshold = 5  # valor por defecto se cambia con self.set_threshold
+        self.trie = None # valor por defecto se cambia con self.make_trie
     ###############################
     ###                         ###
     ###      CONFIGURACION      ###
@@ -173,6 +176,21 @@ class SAR_Project:
         """
         self.permuterm = v
 
+    def set_busq(self, v):
+        """
+        Establece el modo de busqueda aproximada de cadenas
+
+        """
+        if v not in [None, 'levenstein', 'intermediate', 'restricted']: raise ValueError("La distancia no es correcgta")
+        self.busq = v
+    def set_threshold(self, v):
+        """
+
+        Establece el threshold para la busqueda aproximada de cadenas
+
+        """
+        self.threshold = v
+
 
 
     ###############################
@@ -206,6 +224,7 @@ class SAR_Project:
         if 'permuterm' in args:
             self.set_permuterm(args['permuterm'])
 
+
         self.index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}} if self.multifield else {'article':{}}
         
         for dir, _, files in os.walk(root):
@@ -220,7 +239,9 @@ class SAR_Project:
             self.make_stemming()
         if self.permuterm:
             self.make_permuterm()
-        
+        if 'suggest' in args:
+            self.make_trie()
+
 
     def fill_posting_list(self, new, field):
         """
@@ -387,7 +408,12 @@ class SAR_Project:
 
         print('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-')
 
-        
+    def make_trie(self):
+        """
+        NECESARIO PARA BUSQUEDA APROXIMADA
+
+        """
+        self.trie = TrieSpellSuggester("",list(self.index['article'].keys))
 
 
     ###################################
@@ -570,15 +596,55 @@ class SAR_Project:
         return: posting list
 
         """
-        if any(d for d in terms if any(ds in d for ds in ["*", "?"])):# Usamos la función any porque solo requiere que aparezca 1 elemento
+        if any(d for d in terms if any(ds in d for ds in ["*", "?"])):  # Usamos la función any porque solo requiere que aparezca 1 elemento
             return self.get_permuterm(terms, field)
         elif len(terms) > 1:
             pos = self.get_positionals(terms, field)
+            if not pos:  # -> ALT
+                pos = []   # por si acaso
+                spg = SpellSuggester("", list(self.index['article'].keys()))
+                posiblesterms = []
+                termsaux = []
+                for t in terms: #SI una palabra no se encuentra en los articulos de las noticias (posiblemente sea un error)
+                    if t not in list(self.index['article'].keys()):
+                        posiblesterms = spg.suggest(t, self.busq, self.threshold) #Busca las similares bajo el threshold.
+                        for p in posiblesterms:
+                            termsaux = terms
+                            termsaux[terms.index(t)] = p
+                            pos += self.get_posting(termsaux, field)
+
+                if pos: #Si hemos encontrado noticias
+                    return pos
+                # Fuerza bruta (Si aun asi no hemos encontrado noticias, por ejemplo nos hemos equivocado en caso por
+                # "casa" y la busqueda posicional no da resultados.
+                for t in terms:
+                    posiblesterms = spg.suggest(t, self.busq, self.threshold)
+                    for p in posiblesterms:
+                        termsaux = terms
+                        termsaux[terms.index(t)] = p
+                        pos += self.get_posting(termsaux, field)
+                        if pos:
+                            break
+                    if pos:
+                        break
+
             return pos
         elif self.use_stemming:  # Si se requiere stemming del termino:
             return self.get_stemming(terms[0], field)
-        else:
-            return list(self.index[field][terms[0]].keys()) if terms[0] in self.index[field] else []
+        elif terms[0] in self.index[field]:
+            return list(self.index[field][terms[0]].keys())
+        else:  # Si no hemos encontrado ningun resultado en las posting lists -> ALT
+            if busq is None:
+                return []
+            spg = SpellSuggester("", list(self.index['article'].keys()))
+            postinglists = []
+            for t in spgsuggest(terms[0], self.busq, self.threshold):
+                postinglists += self.get_posting(t,field)
+
+            return postinglists
+
+
+
 
 
     def get_positionals(self, terms, field='article'):
