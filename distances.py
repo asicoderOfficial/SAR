@@ -223,6 +223,7 @@ def dp_intermediate_damerau_backwards(x,y):
     return col1[-1]
 
 """
+
 Damerau-levenstein intermedia hacia atras con threshold.
 
 """
@@ -274,9 +275,9 @@ def dp_intermediate_damerau_threshold(x,y,threshold=2**30):
 
 
 
-def dp_intermediate_damerau_trie(x, tri, threshold = 2**30):
+def dp_intermediate_damerau_trie(x, trie, threshold = 2**30):
 
-    nodes = np.fromiter((i for i in range(0,tri.get_num_states())),dtype=int)
+    nodes = np.fromiter((i for i in range(0,trie.get_num_states())),dtype=int)
     col0 = np.zeros(trie.get_num_states(), dtype=int)
     col1 = np.zeros(trie.get_num_states(), dtype=int)
     col2 = np.zeros(trie.get_num_states(), dtype=int)
@@ -360,7 +361,7 @@ def dp_restricted_damerau_trie(x, tri, threshold = 2**30):
     if dic == {}: return []
     return [(k, v) for k, v in dic.items()]
 
-def dist_levenshtein_trie(str1, tr2, thres=2**31):
+def dp_levenshtein_trie(str1, tr2, thres=2**31):
     """
     Distancia de levenshtein para la clase trie.
     """
@@ -369,7 +370,7 @@ def dist_levenshtein_trie(str1, tr2, thres=2**31):
 
     dic = {}
     # Creamos una matriz donde guardar resultados
-    dp = np.full((n+1, m), thres + 1)
+    dp = np.full((n + 1, m), thres + 1)
     # Inicializamos la primera fila
     dp[0][0] = 0
     for x in range(1, m):
@@ -379,26 +380,25 @@ def dist_levenshtein_trie(str1, tr2, thres=2**31):
             if j == 0:
                 dp[i][0] = i
             else:
-                if str1[i-1] == tr2.get_label(j):
-                    dp[i][j] = dp[i-1][tr2.get_parent(j)]
+                if str1[i - 1] == tr2.get_label(j):
+                    dp[i][j] = dp[i - 1][tr2.get_parent(j)]
                 else:
-                    dp[i][j] = 1 + min(dp[i][tr2.get_parent(j)],    # Insertar
-                                    dp[i-1][j],                     # Eliminar
-                                    dp[i-1][tr2.get_parent(j)])     # Reemplazar
+                    dp[i][j] = 1 + min(dp[i][tr2.get_parent(j)],  # Insertar
+                                       dp[i - 1][j],  # Eliminar
+                                       dp[i - 1][tr2.get_parent(j)])  # Reemplazar
         if np.min(dp[i]) > thres:
             break
     nodos = []
     for i in tr2.iter_children(0):
         nodos.append(i)
-    while(nodos):
+    while (nodos):
         nodo = nodos.pop()
         if tr2.is_final(nodo):
             if dp[-1][nodo] <= thres:
                 dic[tr2.get_output(nodo)] = dp[-1][nodo]
         for i in tr2.iter_children(nodo):
             nodos.append(i)
-    return dic
-
+    return [(k, v) for k, v in dic.items()]
 
 def damerau_general(begin, end):
     """

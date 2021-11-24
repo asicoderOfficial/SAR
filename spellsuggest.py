@@ -70,43 +70,41 @@ class SpellSuggester:
             DistUt = dist.dp_intermediate_damerau_threshold
         
         for w in self.vocabulary:
-            if(level_flat(term,w) <= threshold):
-                if (abs(len(w)-lengword) <= threshold):
+            if ((distance == "levenshtein" and level_flat(term,w) <= threshold) or distance != "levenshtein" ) \
+                    and abs(len(w)-lengword) <= threshold:
                     Dist = DistUt(term,w, threshold)
-                    if (Dist <= threshold and Dist != None):
+                    if Dist <= threshold and Dist is not None and w not in results:
                     #Diccionario implementado para --> {word:distancia}
-                        if (w not in results):
-                            results[w] = Dist
+                        results[w] = Dist
         return results
 
 class TrieSpellSuggester(SpellSuggester):
-    def suggest(self, term, distance="levenshtein", threshold=None):
-        results = {}
-        if threshold == None:
-            threshold = 2**31
-        a = self.trie.get_num_states()
-        b = len(term)
-        M1 = np.zeros(a)
-        M2 = np.zeros(a)
-        for i in range(1,a):
-            M1[i]= M1[self.trie.get_parent(i)] + 1
+    def suggest(self, term, distance="levenshtein", threshold=2 ** 31):
 
-        for col in range(1,b + 1):
-            M2[0]=col
-            for fil in range(1,a) :
-                cost = not term[col-1] == self.trie.get_label(fil)
-                M2[fil] = min(M1[fil] + 1,
-                            M2[self.trie.get_parent(fil)] + 1,
-                            M1[self.trie.get_parent(fil)] + cost)
-            if min(M2) > threshold:
-                 return {}
-            M1, M2 = M2, M1
+        """Método para sugerir palabras similares siguiendo la tarea 3.
 
-        for i in range(a):
-            if self.trie.is_final(i):
-                if M1[i] <= threshold: results[self.trie.get_output(i)] = M1[i]
-        return results
-        return super().suggest(term, distance, threshold)
+        A completar.
+
+        Args:
+            term (str): término de búsqueda.
+            distance (str): algoritmo de búsqueda a utilizar
+                {"levenshtein", "restricted", "intermediate"}.
+            threshold (int): threshold para limitar la búsqueda
+                puede utilizarse con los algoritmos de distancia mejorada de la tarea 2
+                o filtrando la salida de las distancias de la tarea 2
+        """
+        if distance not in ["levenshtein", "restricted", "intermediate"]: raise ValueError(
+            "La distancia no es correcta")
+        results = {}  # diccionario termino:distancia
+        lengword = len(term)  # Agilizar dentro del bucle.
+        if distance == "levenshtein":
+            DistUt = dist.dp_levenshtein_trie
+        elif distance == "restricted":
+            DistUt = dist.dp_restricted_damerau_trie
+        elif distance == "intermediate":
+            DistUt = dist.dp_intermediate_damerau_trie
+        Dist = DistUt(term, self.trie, threshold)
+        return Dist
 
     """
     Clase que implementa el método suggest para la búsqueda de términos y añade el trie

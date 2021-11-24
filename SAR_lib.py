@@ -62,7 +62,7 @@ class SAR_Project:
         self.multifield = False # valor por defecto, se cambia con self.set_multifield()
         self.positional = False # valor por defecto, se cambia con self.set_positional()
         self.permuterm = False # valor por defecto, se cambia con self.set_permuterm()
-        self.busq = None  # valor por defecto se cambia con self.set_busq()
+        self.busq = None  # valor por defecto, cuando no se usa la busqueda, se cambia con self.set_busq()
         self.threshold = 5  # valor por defecto se cambia con self.set_threshold
         self.trie = None # valor por defecto se cambia con self.make_trie
     ###############################
@@ -181,7 +181,7 @@ class SAR_Project:
         Establece el modo de busqueda aproximada de cadenas
 
         """
-        if v not in [None, 'levenstein', 'intermediate', 'restricted']: raise ValueError("La distancia no es correcgta")
+        if v not in [None, 'levenshtein', 'intermediate', 'restricted']: raise ValueError("La distancia no es correcta")
         self.busq = v
     def set_threshold(self, v):
         """
@@ -241,6 +241,7 @@ class SAR_Project:
             self.make_permuterm()
         if 'suggest' in args:
             self.make_trie()
+            self.busq = "levenshtein"
 
 
     def fill_posting_list(self, new, field):
@@ -638,7 +639,7 @@ class SAR_Project:
                 return []
             spg = SpellSuggester("", list(self.index['article'].keys()))
             postinglists = []
-            for t in spgsuggest(terms[0], self.busq, self.threshold):
+            for t in spg.suggest(terms[0], self.busq, self.threshold):
                 postinglists += self.get_posting(t,field)
 
             return postinglists
