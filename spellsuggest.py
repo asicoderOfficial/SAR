@@ -113,7 +113,7 @@ class TrieSpellSuggester(SpellSuggester):
     """
     def __init__(self, vocab_file_path,vocab=None):
         super().__init__(vocab_file_path,vocab)
-        self.trie = Trie(self.vocabulary)
+        self.trie = Trie(sorted(self.vocabulary))
 
 
 if __name__ == "__main__":

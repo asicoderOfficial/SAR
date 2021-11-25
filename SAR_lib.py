@@ -1,3 +1,4 @@
+
 import json
 from nltk.stem.snowball import SnowballStemmer
 import os
@@ -15,8 +16,8 @@ class SAR_Project:
           parentesis + multiples indices + posicionales + stemming + permuterm + ranking de resultado
 
     Se deben completar los metodos que se indica.
-    Se pueden aÃ±adir nuevas variables y nuevos metodos
-    Los metodos que se aÃ±adan se deberan documentar en el codigo y explicar en la memoria
+    Se pueden aadir nuevas variables y nuevos metodos
+    Los metodos que se anyadan se deberan documentar en el codigo y explicar en la memoria
     """
 
     # lista de campos, el booleano indica si se debe tokenizar el campo
@@ -41,7 +42,7 @@ class SAR_Project:
         NECESARIO PARA LA VERSION MINIMA
 
         Incluye todas las variables necesaria para todas las ampliaciones.
-        Puedes aÃ±adir mÃ¡s variables si las necesitas
+        Puedes aadir ms variables si las necesitas
 
         """
         self.index = {} # hash para el indice invertido de terminos --> clave: termino, valor: posting list.
@@ -51,12 +52,12 @@ class SAR_Project:
         self.ptindex = {} # hash para el indice permuterm.
         self.docs = {} # diccionario de documentos --> clave: entero(docid),  valor: ruta del fichero.
         self.weight = {} # hash de terminos para el pesado, ranking de resultados. puede no utilizarse
-        self.news = {} # hash de noticias --> clave entero (newid), valor: la info necesaria para diferenciar la noticia dentro de su fichero (doc_id y posiciÃ³n dentro del documento)
+        self.news = {} # hash de noticias --> clave entero (newid), valor: la info necesaria para diferenciar la noticia dentro de su fichero (doc_id y posicin dentro del documento)
         self.tokenizer = re.compile("\W+") # expresion regular para hacer la tokenizacion
         self.stemmer = SnowballStemmer('spanish') # stemmer en castellano
         self.weight_noti = {} #Hash para pesados usado en rank_result.
-        self.perterms = {} #Hash para permuterm. La clave es el permuterm y el valor es la lista de términos de ese permuterm. 
-        self.stemterms = {} #Hash para stemming. La clave es el stem y el valor es la lista de términos asociados a ese stem.
+        self.perterms = {} #Hash para permuterm. La clave es el permuterm y el valor es la lista de trminos de ese permuterm. 
+        self.stemterms = {} #Hash para stemming. La clave es el stem y el valor es la lista de trminos asociados a ese stem.
         self.show_all = False # valor por defecto, se cambia con self.set_showall()
         self.show_snippet = False # valor por defecto, se cambia con self.set_snippet()
         self.use_stemming = False # valor por defecto, se cambia con self.set_stemming()
@@ -235,6 +236,7 @@ class SAR_Project:
         if 'permuterm' in args:
             self.set_permuterm(args['permuterm'])
 
+        print(args)
 
         self.index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}} if self.multifield else {'article':{}}
         
@@ -250,7 +252,7 @@ class SAR_Project:
             self.make_stemming()
         if self.permuterm:
             self.make_permuterm()
-        if 'suggest' in args:
+        if args['suggest']:
             self.make_trie()
             self.busq = "levenshtein"
 
@@ -259,7 +261,7 @@ class SAR_Project:
         """
         Metodo para rellenar la posting list correspondiente a cada termino.
         El formato del indice es el siguiente:
-        self.index = {field:{token:{new_id,[position1,position2,…]}}}
+        self.index = {field:{token:{new_id,[position1,position2,]}}}
         """
         #No tokenizamos y solamente almacenamos la id de la noticia correspondiente a la fecha dada.
         if field == 'date':
@@ -416,7 +418,7 @@ class SAR_Project:
         if (self.positional):
             print('Positional queries are allowed')
         else:
-            print(print('Positional queries are NOT allowed'))
+            print('Positional queries are NOT allowed')
 
         print('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-')
 
@@ -438,7 +440,7 @@ class SAR_Project:
         if isinstance(query, list):  # Si son terminos
             ft = self.format_terms(query)  # Los formateamos
             terms = self.get_posting(ft[1], ft[0])  # Obtenemos sus posting list
-            lista = sorted(list(set(i for i in terms)))  # Nos quedamos con las noticias únicas
+            lista = sorted(list(set(i for i in terms)))  # Nos quedamos con las noticias nicas
             return lista
         else:
             return query
@@ -471,16 +473,16 @@ class SAR_Project:
         if query is None or len(query) == 0:
             return []
 
-        newquery = self.shunting_yard(self.infix_notation(query))  # Pasamos la query de notación infija y la pasamos
+        newquery = self.shunting_yard(self.infix_notation(query))  # Pasamos la query de notacin infija y la pasamos
                                                          # al algoritmo shunting_yard para obtener la postfija
         operandos = []
-        newquery = list(map(self.mapquery, newquery))  # Formateamos los términos de la lista y obtenemos sus posting list.
+        newquery = list(map(self.mapquery, newquery))  # Formateamos los trminos de la lista y obtenemos sus posting list.
 
         i = 0
         while len(newquery) != 1: #Vamos a analizar hasta que obtengamos 1 lista resultado.
             token = newquery[i]
             if isinstance(token, list):
-                operandos.append(token) #Añadimos a operandos y seguimos analizando
+                operandos.append(token) #Aadimos a operandos y seguimos analizando
                 i += 1
             elif token == "NOT": #Si vemos una NOT, haremos reverse posting del ultimo elemento de la lista
                 newquery[i - 1] = self.reverse_posting(operandos.pop())
@@ -500,11 +502,11 @@ class SAR_Project:
 
     def shunting_yard(self, inputt):
         """
-        Convierte una cadena en notación de postfijo (Fácilmente analizable) usando el algoritmo shunting_yard
+        Convierte una cadena en notacin de postfijo (Fcilmente analizable) usando el algoritmo shunting_yard
         (con op unarios)
 
         :param inputt: consulta en notacion de infijo
-        :return: consulta en notación de postfijo
+        :return: consulta en notacin de postfijo
         """
         stack = [] # Pila operadores
         out = [] # Salida
@@ -527,15 +529,15 @@ class SAR_Project:
                     out.append(stack.pop())
                 stack.pop()  # Descartamos el parentesis
         stack.reverse()
-        for op in stack:  # Añadimos el resto de operadores
+        for op in stack:  # Aadimos el resto de operadores
             out.append(op)
 
         return out
 
     def format_terms(self, terms):
         """
-        Elimina los caracteres " y las palabras clave keywords:, title: etc para dejar los términos en una lista.
-        Si contiene keywords, title... será incluido al principio de la lista.
+        Elimina los caracteres " y las palabras clave keywords:, title: etc para dejar los trminos en una lista.
+        Si contiene keywords, title... ser incluido al principio de la lista.
         :param term: lista con los terminos
         :return:  lista en formato: [campo, [terminos]]
         """
@@ -550,7 +552,7 @@ class SAR_Project:
         if field in multifield:  # Si esta el campo en la lista
             fieldr = field  # El campo default pasa a ser el campo encontrado
             terms[0] = terms[0][len(field) + 1:]  # Cambiamos el termino para que ya no contenga "campo:"
-            fterms.extend(terms[1:])  # Añadimos los elementos de
+            fterms.extend(terms[1:])  # Aadimos los elementos de
         if not fterms:  # Si no hay keywords
             fterms = [*terms]  # Copia
         fterms[0] = fterms[0][1:] if fterms[0][0] == "\'" else fterms[0]  # Eliminamos el primer caracter si es "
@@ -568,9 +570,9 @@ class SAR_Project:
 
     def infix_notation(self, query):
         """
-        Devuelve la consulta con notación de infijo.
+        Devuelve la consulta con notacin de infijo.
         La consulta no debe tener los caracteres " y ( ) como terminos
-        Útil para ser convertido a notación de postf
+        til para ser convertido a notacin de postf
         ....ppijo.
         :param query: consulta a realizar
         :return: consulta en notacion de infijo NOT [Termino] OR [Termino]
@@ -582,14 +584,14 @@ class SAR_Project:
         term = []  # Lista para los terminos
         for i in query:
             if i not in ["NOT", "OR", "AND", "(", ")"]:  # Si no es un operador
-                term.append(i)  # Lo añadimos a la lista de terminos
+                term.append(i)  # Lo aadimos a la lista de terminos
             elif term:  # Si es un operador y la lista de terminos no esta vacia
-                ops.append(term)  # Añadimos a la lista de operaciones los terminos
-                ops.append(i)  # Añadimos a la lista de operadores el operador
+                ops.append(term)  # Aadimos a la lista de operaciones los terminos
+                ops.append(i)  # Aadimos a la lista de operadores el operador
                 term = []  # Reiniciamos la lista de terminos
             else:
-                ops.append(i) # Si es un operador y esta vacia lo añadimos a la lista de operaciones
-        if term: ops.append(term) # Si aún hay terminos los añadimos a
+                ops.append(i) # Si es un operador y esta vacia lo aadimos a la lista de operaciones
+        if term: ops.append(term) # Si an hay terminos los aadimos a
         return ops
 
 
@@ -603,12 +605,12 @@ class SAR_Project:
             - self.get_permuterm: para la ampliacion de permuterms
             - self.get_stemming: para la amplaicion de stemming
 
-        param:  "terms": lista con los términos
+        param:  "terms": lista con los trminos
                 field: campo a buscar
         return: posting list
 
         """
-        if any(d for d in terms if any(ds in d for ds in ["*", "?"])):  # Usamos la función any porque solo requiere que aparezca 1 elemento
+        if any(d for d in terms if any(ds in d for ds in ["*", "?"])):  # Usamos la funcin any porque solo requiere que aparezca 1 elemento
             return self.get_permuterm(terms, field)
         elif len(terms) > 1:
             pos = self.get_positionals(terms, field)
@@ -617,7 +619,7 @@ class SAR_Project:
                 pos = []   # por si acaso
                 if self.use_trie:
                     if self.trie is None:
-                        raise ValueError("Error: se indicó busqueda con trie pero el indice no se creó con -G")
+                        raise ValueError("Error: se indic busqueda con trie pero el indice no se cre con -G")
                     spg = self.trie
                 else:
                     spg = SpellSuggester("", list(self.index['article'].keys()))
@@ -656,7 +658,7 @@ class SAR_Project:
                 return []
             if self.use_trie:
                 if self.trie is None:
-                    raise ValueError("Error: se indicó busqueda con trie pero el indice no se creó con -G")
+                    raise ValueError("Error: se indic busqueda con trie pero el indice no se cre con -G")
                 spg = self.trie
             else:
                 spg = SpellSuggester("", list(self.index['article'].keys()))
@@ -709,7 +711,7 @@ class SAR_Project:
     def get_permuterm(self, term, field='article'):
         """
             Busca en el diccionario de permuterms las palabras que se ajustan a la wildcard.
-            Se hace una búsqueda exhaustiva.
+            Se hace una bsqueda exhaustiva.
         :param term: termino a buscar (con wildcard)
         :param field: campo donde buscar
         :return: posting list con newid
@@ -725,7 +727,7 @@ class SAR_Project:
                 permuterms = self.ptindex[field][key]
                 i = 0
                 end = False
-                while i < len(permuterms) and not end: #Recorremos toda la lista de terminos y sus rotaciones para encontrar las posting list de los términos.
+                while i < len(permuterms) and not end: #Recorremos toda la lista de terminos y sus rotaciones para encontrar las posting list de los trminos.
                     if term in permuterms[i]:
                         result = self.or_posting(result, sorted(self.index[field][key].keys()))
                         end = True
@@ -733,13 +735,13 @@ class SAR_Project:
         else:
             term = term[:-1]
             for key in self.ptindex[field]:
-                if len(key) == len(term): #Si es ? la longitud tendrá que ser la misma.
+                if len(key) == len(term): #Si es ? la longitud tendr que ser la misma.
                     permuterms = self.ptindex[field][key]
                     i=0
                     end = False
                     while i < len(permuterms) and not end:
                         if term in permuterms[i]:
-                            result = self.or_posting(result, sorted(self.index[field][key].keys())) #Recorremos toda la lista de terminos y sus rotaciones para encontrar las posting list de los términos.
+                            result = self.or_posting(result, sorted(self.index[field][key].keys())) #Recorremos toda la lista de terminos y sus rotaciones para encontrar las posting list de los trminos.
                             end = True
                         i = i+1
         return result
@@ -898,10 +900,10 @@ class SAR_Project:
     def get_terms_permuterm(self, term, field="article"):
         """
         Busca en el diccionario de permuterms las palabras que se ajustan a la wildcard.
-        Se hace una búsqueda exhaustiva.
+        Se hace una bsqueda exhaustiva.
         :param term: termino a buscar (con wildcard)
         :param field: campo donde buscar
-        :return: los términos que se asocian a esa busqueda.
+        :return: los trminos que se asocian a esa busqueda.
         """
         term = term[0] + '$'
         while term[-1] != '*' and term[-1] != '?':
@@ -950,7 +952,7 @@ class SAR_Project:
         
         """
         #Variables auxiliares:
-        noticiasprocesadas = 1 #Contador usado más adelante para indicar el número de noticia procesada.
+        noticiasprocesadas = 1 #Contador usado ms adelante para indicar el nmero de noticia procesada.
         #Resolvemos la query y en caso de que se aplique ranking aplicamos para las noticias resultantes.
         result = self.solve_query(query)
         q_sep = list(map(self.cleanquery, self.shunting_yard(self.infix_notation(query))))
@@ -973,15 +975,15 @@ class SAR_Project:
             PosicionDocumento = self.news[ID][1]
             PathDocumento = self.docs[self.news[ID][0]]
 
-            #Leer el documento que contiene la noticia que queremos obtener la información
+            #Leer el documento que contiene la noticia que queremos obtener la informacin
             with open(PathDocumento) as fl:
                 lista = json.load(fl)
                 noticiait = lista[PosicionDocumento-1]
-                #Ahora obtenemos los datos requeridos de la noticia (Keywords, Id de noticia(ya presente en el iterador), la fecha y el título de esta)
+                #Ahora obtenemos los datos requeridos de la noticia (Keywords, Id de noticia(ya presente en el iterador), la fecha y el ttulo de esta)
                 keywords_noticia = noticiait['keywords']
                 titulo_noticia = noticiait['title']
                 fecha_noticia = noticiait['date']
-                #Distinguimos entre si se ha usado la opción -N o no, y según ello mostramos la información de la noticia por pantalla
+                #Distinguimos entre si se ha usado la opcin -N o no, y segn ello mostramos la informacin de la noticia por pantalla
                 if not self.show_snippet:
                     print("#{}      ({})  ({})  ({})   {}      ({})".format(noticiasprocesadas, rank, ID, fecha_noticia,
                                                                             titulo_noticia, keywords_noticia))
@@ -989,16 +991,16 @@ class SAR_Project:
                     print("#{} \nScore:{} \nNewsID: {}  \nDate: {}   \nTitle: {}   \nNKeywords: {}".format(
                     noticiasprocesadas, rank, ID, fecha_noticia, titulo_noticia, keywords_noticia))
                 noticiasprocesadas += 1
-        # Ahora viene la parte bonita, que es calcular el snippet en caso de ser requerido. Asimismo, lo implementaremos según la segunda forma sugerida en el boletín.
+        # Ahora viene la parte bonita, que es calcular el snippet en caso de ser requerido. Asimismo, lo implementaremos segn la segunda forma sugerida en el boletn.
             cuerpoST = []
             if self.show_snippet:
                 cuerpoST = noticiait['article']
                 cuerpoST = self.tokenize(cuerpoST)
 
-            # Antes de retirar los espacios de la query, debemos separar los paréntesis de la query
+            # Antes de retirar los espacios de la query, debemos separar los parntesis de la query
 
 
-            # Añadimos el índice de la palabra contenida en la query a la lista
+            # Aadimos el ndice de la palabra contenida en la query a la lista
             if self.permuterm:
                 for part in q_sep:
                     if isinstance(part,list):
@@ -1019,17 +1021,17 @@ class SAR_Project:
                                 aux_id += [self.index["article"][term][ID][0]]
 
             aux_id.sort()  # Ordenamos ids por orden ascendente.
-            a_devolver_snippet = ""  # Cadena vacía para devolver...
+            a_devolver_snippet = ""  # Cadena vaca para devolver...
             Proc = False
 
             for i in range(len(aux_id)):
-                # Comprobar que no estamos sobre el último índice
+                # Comprobar que no estamos sobre el ltimo ndice
                 if i < len(aux_id)-1 and not Proc:
 
                     id1 = aux_id[i]
                     id2 = aux_id[i + 1]
 
-                    # Ahora hay que comprobar si se solapan. La distancia escogida arbitrariamente será de 4 palabras. Para contexto usaremos 2 palabras a izquierda y derecha.
+                    # Ahora hay que comprobar si se solapan. La distancia escogida arbitrariamente ser de 4 palabras. Para contexto usaremos 2 palabras a izquierda y derecha.
                     if id2 - id1 <= 4:
                         Proc = True
                         if id1 < 2:
@@ -1076,7 +1078,7 @@ class SAR_Project:
 
         """
 
-        #Términos de la query
+        #Trminos de la query
         t = {}
 
         if self.permuterm:
@@ -1095,13 +1097,13 @@ class SAR_Project:
         #Por cada noticia en el resultado...
         for noticia in result:
             pesado_noticia = 0
-            #Por cada término y campo (Pues hay que calcular una por una para todas la noticias) usando las calculadas anteriormente.
+            #Por cada trmino y campo (Pues hay que calcular una por una para todas la noticias) usando las calculadas anteriormente.
             for part in query:
                 if isinstance(part,list):
                     for term in part[1]:
                         field = part[0]
-                    #Para el pesado usaremos el explicado en el tema 4 de teoría.
-                        #1er paso: Pesado del término
+                    #Para el pesado usaremos el explicado en el tema 4 de teora.
+                        #1er paso: Pesado del trmino
                         tf = 0
                         ft = 0
                         if term in self.index[field]:
@@ -1110,18 +1112,18 @@ class SAR_Project:
                                     ft += len(self.index[field][term][c])
                             if ft > 0:
                                 tf = math.log10(ft)
-                            # 2do paso: Función global idf
+                            # 2do paso: Funcin global idf
                             df = len(self.index[field][term].keys())
                             idf = math.log10(len(self.news) / df)
 
-                            # 3er paso: Acumular el pesado de cada término para obtener el total de la noticia
+                            # 3er paso: Acumular el pesado de cada trmino para obtener el total de la noticia
                             pesado_noticia = pesado_noticia + (tf * idf)
 
-            #Añadir los pesados sobre cada noticia
+            #Aadir los pesados sobre cada noticia
             self.weight_noti[noticia] = self.weight_noti.get(noticia,0) + pesado_noticia
             Masquepesados.append(pesado_noticia)
             
-        #Para finalizar, antes de devolver la lista, se ordena según el ranking de noticias.
+        #Para finalizar, antes de devolver la lista, se ordena segn el ranking de noticias.
         res = [i for _,i in sorted(zip(Masquepesados,result), reverse = True)]
 
         return res
