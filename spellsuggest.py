@@ -7,6 +7,8 @@ from trie import Trie
 import collections
 import time
 import numpy as np
+
+
 class SpellSuggester:
 
     """

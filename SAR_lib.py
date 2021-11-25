@@ -2,8 +2,11 @@ import json
 from nltk.stem.snowball import SnowballStemmer
 import os
 import re
-import spellsuggest as sg
+from spellsuggest import SpellSuggester
+from spellsuggest import TrieSpellSuggester
 import math
+
+
 class SAR_Project:
     """
     Prototipo de la clase para realizar la indexacion y la recuperacion de noticias
@@ -422,7 +425,7 @@ class SAR_Project:
         NECESARIO PARA BUSQUEDA APROXIMADA
 
         """
-        self.trie = TrieSpellSuggester("",list(self.index['article'].keys))
+        self.trie = TrieSpellSuggester("",list(self.index['article'].keys()))
 
 
     ###################################
