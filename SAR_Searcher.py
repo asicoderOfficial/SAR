@@ -53,9 +53,9 @@ if __name__ == "__main__":
     parser.add_argument('-B', '--busq', dest='busq', metavar = 'busq', type=str, action='store',
                     help="busqueda aproximada ('levenshtein' o 'restricted' o intermediate).")
     # Añadimos un argumento para la búsqueda de términos aproximados
-    parser.add_argument('-Z', '--thresh', dest='thresh', metavar='thresh', type=str, action='store',
+    parser.add_argument('-Z', '--thresh', dest='thresh', metavar='thresh', type=int, action='store',
                         help="threshold para la busqueda aproximada, si no se indica es 3 por defecto.).")
-    parser.add_argument('-T', '--trie', dest='trie', metavar='trie', type=str, action='store',
+    parser.add_argument('-Tr', '--trie', dest='trie', metavar='trie', type=str, action='store',
                         help="Si se hace la busqueda con usando trie para la distancia de edicion o no, por defecto: False")
     args = parser.parse_args()
 

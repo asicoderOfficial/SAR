@@ -236,8 +236,6 @@ class SAR_Project:
         if 'permuterm' in args:
             self.set_permuterm(args['permuterm'])
 
-        print(args)
-
         self.index = {'article':{}, 'title':{}, 'summary':{}, 'keywords':{}, 'date':{}} if self.multifield else {'article':{}}
         
         for dir, _, files in os.walk(root):
@@ -623,12 +621,11 @@ class SAR_Project:
                     spg = self.trie
                 else:
                     spg = SpellSuggester("", list(self.index['article'].keys()))
-                posiblesterms = []
                 termsaux = []
                 for t in terms: #SI una palabra no se encuentra en los articulos de las noticias (posiblemente sea un error)
                     if t not in list(self.index['article'].keys()):
-                        posiblesterms = spg.suggest(t, self.busq, self.threshold) #Busca las similares bajo el threshold.
-                        for p in posiblesterms:
+                        palabras = [w for w,_ in spg.suggest(t, self.busq, self.threshold)]
+                        for p in palabras:
                             termsaux = terms
                             termsaux[terms.index(t)] = p
                             pos += self.get_posting(termsaux, field)
@@ -638,8 +635,8 @@ class SAR_Project:
                 # Fuerza bruta (Si aun asi no hemos encontrado noticias, por ejemplo nos hemos equivocado en caso por
                 # "casa" y la busqueda posicional no da resultados.
                 for t in terms:
-                    posiblesterms = spg.suggest(t, self.busq, self.threshold)
-                    for p in posiblesterms:
+                    palabras = [w for w,_ in spg.suggest(t, self.busq, self.threshold)]
+                    for p in palabras:
                         termsaux = terms
                         termsaux[terms.index(t)] = p
                         pos += self.get_posting(termsaux, field)
@@ -654,7 +651,7 @@ class SAR_Project:
         elif terms[0] in self.index[field]:
             return list(self.index[field][terms[0]].keys())
         else:  # Si no hemos encontrado ningun resultado en las posting lists -> ALT
-            if busq is None:
+            if self.busq is None:
                 return []
             if self.use_trie:
                 if self.trie is None:
@@ -664,8 +661,9 @@ class SAR_Project:
                 spg = SpellSuggester("", list(self.index['article'].keys()))
 
             postinglists = []
-            for t in spg.suggest(terms[0], self.busq, self.threshold):
-                postinglists += self.get_posting(t,field)
+            palabras = [w for w,_ in spg.suggest(terms[0], self.busq, self.threshold)]
+            for t in palabras:
+                postinglists += self.get_posting([t],field)
 
             return postinglists
 
