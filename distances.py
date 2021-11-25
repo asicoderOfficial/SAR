@@ -139,7 +139,7 @@ def dp_restricted_damerau_threshold(x, y, threshold=2**30):
                         columnas2[j] = 1 + min(columnas2[j - 1], columnas1[j], columnas1[j - 1])
 
         if np.min(columnas2) > threshold:
-            return np.min(columnas2)
+            return threshold+1
 
         columnasI = np.copy(columnas1)
         columnas1 = np.copy(columnas2)
@@ -265,7 +265,7 @@ def dp_intermediate_damerau_threshold(x,y,threshold=2**30):
                         col2[j] = 1 + min(col2[j - 1],  col1[j], col1[j - 1])
 
         if np.min(col2) > threshold:
-            return np.min(col2)
+            return threshold+1
         col4 = np.copy(colI)
         colI = np.copy(col1)
         col1 = np.copy(col2)
@@ -345,6 +345,7 @@ def dp_restricted_damerau_trie(x, tri, threshold = 2**30):
                     else:
                         columnas2[j] = 1 + min(columnas2[tri.get_parent(j)], columnas1[j], columnas1[tri.get_parent(j)])
         if np.min(columnas2) > threshold:
+            columnas1 = np.copy(columnas2)
             break
 
         columnasI = np.copy(columnas1)

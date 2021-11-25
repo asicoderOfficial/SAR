@@ -2,7 +2,7 @@ import json
 from nltk.stem.snowball import SnowballStemmer
 import os
 import re
-import spellsugest as sg
+import spellsuggest as sg
 import math
 class SAR_Project:
     """
@@ -63,7 +63,7 @@ class SAR_Project:
         self.positional = False # valor por defecto, se cambia con self.set_positional()
         self.permuterm = False # valor por defecto, se cambia con self.set_permuterm()
         self.busq = None  # valor por defecto, cuando no se usa la busqueda, se cambia con self.set_busq()
-        self.threshold = 5  # valor por defecto se cambia con self.set_threshold
+        self.threshold = 3  # valor por defecto se cambia con self.set_threshold
         self.trie = None # valor por defecto se cambia con self.make_trie
         self.use_trie = False # Valor por defecto, indica si en la consulta se busca con trie o no.
     ###############################
@@ -102,6 +102,13 @@ class SAR_Project:
         """
         self.show_snippet = v
 
+    def set_trie(self, v):
+        """
+
+        Indica si se usa trie o no para las distancias de edicion.
+        input BOOLEANO
+        """
+        self.use_trie = v
 
     def set_stemming(self, v):
         """
@@ -606,7 +613,9 @@ class SAR_Project:
 
                 pos = []   # por si acaso
                 if self.use_trie:
-                    spg = TrieSpellSuggester("", list(self.index['article'].keys()))
+                    if self.trie is None:
+                        raise ValueError("Error: se indicó busqueda con trie pero el indice no se creó con -G")
+                    spg = self.trie
                 else:
                     spg = SpellSuggester("", list(self.index['article'].keys()))
                 posiblesterms = []
@@ -643,7 +652,9 @@ class SAR_Project:
             if busq is None:
                 return []
             if self.use_trie:
-                spg = TrieSpellSuggester("", list(self.index['article'].keys()))
+                if self.trie is None:
+                    raise ValueError("Error: se indicó busqueda con trie pero el indice no se creó con -G")
+                spg = self.trie
             else:
                 spg = SpellSuggester("", list(self.index['article'].keys()))
 
