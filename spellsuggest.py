@@ -152,7 +152,7 @@ if __name__ == "__main__":
                     thres.append(y)
                     mres.append(z)
                     timeres.append(t)
-                    trie.append('Yes')
+                    trie.append('No')
                     print('Trie: No   Tamaño: '+ str(x) + '   Threshold: ' + str(y) + '   Método: ' + z + '   :   ' + str(t))
             spellsuggester = TrieSpellSuggester("./quijote.txt", sorted_vocab[:x])
             for z in m:
@@ -166,7 +166,7 @@ if __name__ == "__main__":
                     thres.append(y)
                     mres.append(z)
                     timeres.append(t)
-                    trie.append('No')
+                    trie.append('Yes')
                     print('Trie: Sí   Tamaño: '+ str(x) + '   Threshold: ' + str(y) + '   Método: ' + str(z)   + '   :    ' + str(t))
 
     #Creamos el DataFrame con los resultados de todas las ejecuciones.
