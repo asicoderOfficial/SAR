@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # version 1.1
 
 
@@ -50,11 +51,13 @@ if __name__ == "__main__":
 
     # Añadimos un argumento para la búsqueda de términos aproximados
     parser.add_argument('-B', '--busq', dest='busq', metavar = 'busq', type=str, action='store',
-                    help="busqueda aproximada ('levenshtein' o 'restricted' o intermediate).")
+                    help="busqueda aproximada ('levenshtein' o 'restricted' o intermediate). "
+                         "Si no se indica se presupone que no se hace busqueda de otras palabras")
     # Añadimos un argumento para la búsqueda de términos aproximados
-    parser.add_argument('-T', '--thresh', dest='thresh', metavar='thresh', type=str, action='store',
-                        help="threshold para la busqueda aproximada, si no se indica es 5 por defecto.).")
-
+    parser.add_argument('-Z', '--thresh', dest='thresh', metavar='thresh', type=int, action='store',
+                        help="threshold para la busqueda aproximada, si no se indica es 3 por defecto.).")
+    parser.add_argument('-Tr', '--trie', dest='trie', metavar='trie', type=str, action='store',
+                        help="Si se hace la busqueda con usando trie para la distancia de edicion o no, por defecto: False")
     args = parser.parse_args()
 
     with open(args.index, 'rb') as fh:
@@ -66,7 +69,7 @@ if __name__ == "__main__":
     searcher.set_snippet(args.snippet)
     searcher.set_busq(args.busq)
     searcher.set_threshold(args.thresh)
-
+    searcher.set_trie(args.trie)
     # se debe contar o mostrar resultados?
     if args.count is True:
         fnc = searcher.solve_and_count

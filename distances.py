@@ -88,32 +88,8 @@ def dp_levenshtein_threshold(begin, end, threshold=2**30):
     return b[-1]
 
 
-def levenshtein_restringed(begin, end, threshold):
-    """
-    Distancia de levenshtein restringida por un threshold.
-    Si se supera, devolvemos el threshold + 1.
-    """
-
-    levmatrix = crear_matriz_levenshtein(begin, end)
-    levmatrix = np.transpose(levmatrix)
-    for i in range(1,len(begin)+1):
-        for j in range(1,len(end)+1):
-            if begin[i-1] == end[j-1]:
-                #Caracteres iguales.
-                levmatrix[i,j] = levmatrix[i-1, j-1]
-            else:
-                #No es igual, cogemos el minimo y sumamos 1.
-                levmatrix[i,j] = min(levmatrix[i-1, j-1],
-                                     min(levmatrix[i-1, j],
-                                         levmatrix[i, j-1])) + 1
-            if levmatrix[i,j] > threshold:
-                #Hemos superado el threshold!!
-                return threshold + 1
-    return levmatrix[len(begin), len(end)]
-
 """
 Version iterativa de la distancia damerau restringida  con threshold.
-
 """
 def dp_restricted_damerau_threshold(x, y, threshold=2**30):
     n = len(x)
@@ -139,7 +115,7 @@ def dp_restricted_damerau_threshold(x, y, threshold=2**30):
                         columnas2[j] = 1 + min(columnas2[j - 1], columnas1[j], columnas1[j - 1])
 
         if np.min(columnas2) > threshold:
-            return np.min(columnas2)
+            return threshold+1
 
         columnasI = np.copy(columnas1)
         columnas1 = np.copy(columnas2)
@@ -265,7 +241,7 @@ def dp_intermediate_damerau_threshold(x,y,threshold=2**30):
                         col2[j] = 1 + min(col2[j - 1],  col1[j], col1[j - 1])
 
         if np.min(col2) > threshold:
-            return np.min(col2)
+            return threshold+1
         col4 = np.copy(colI)
         colI = np.copy(col1)
         col1 = np.copy(col2)
@@ -345,6 +321,7 @@ def dp_restricted_damerau_trie(x, tri, threshold = 2**30):
                     else:
                         columnas2[j] = 1 + min(columnas2[tri.get_parent(j)], columnas1[j], columnas1[tri.get_parent(j)])
         if np.min(columnas2) > threshold:
+            columnas1 = np.copy(columnas2)
             break
 
         columnasI = np.copy(columnas1)
@@ -402,38 +379,3 @@ def dp_levenshtein_trie(str1, tr2, thres=2**31):
             nodos.append(i)
     return [(k, v) for k, v in dic.items()]
 
-def damerau_general(begin, end):
-    """
-    Distancia de levenshtein basica,
-    con optimizacion de memoria, O(n),
-    siendo n=len(begin).
-    """
-    d = {}
-    lenbegin = len(begin)
-    lenend = len(end)
-    for i in xrange(-1,lenbegin+1):
-        d[(i,-1)] = i+1
-    for j in xrange(-1,lenend+1):
-        d[(-1,j)] = j+1
-
-    for i in xrange(lenbegin):
-        for j in xrange(lenend):
-            if begin[i] == end[j]:
-                cost = 0
-            else:
-                cost = 1
-            d[(i,j)] = min(
-                           d[(i-1,j)] + 1, # deletion
-                           d[(i,j-1)] + 1, # insertion
-                           d[(i-1,j-1)] + cost, # substitution
-                          )
-            if i and j and begin[i]==end[j-1] and begin[i-1] == end[j]:
-                d[(i,j)] = min (d[(i,j)], d[i-2,j-2] + cost) # transposition
-
-    return d[lenbegin-1,lenend-1]
-"""
-print(levenshtein_basic('benyam', 'ephre'))
-print(levenshtein_optimized('benyam', 'ephre'))
-print(levenshtein_optimized_restringed('benyam', 'ephre', 10))
-print(levenshtein_restringed('benyam', 'ephre', 10))
-"""
