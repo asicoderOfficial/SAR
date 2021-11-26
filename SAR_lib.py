@@ -612,7 +612,21 @@ class SAR_Project:
             return self.get_permuterm(terms, field)
         elif len(terms) > 1:
             pos = self.get_positionals(terms, field)
-            if not pos:  # -> ALT
+            if not pos:  # -> ALT ESTO NO ERA REQUERIDO PERO ES UNA IDEA QUE HEMOS TENIDO:
+                """
+                En los posicionales (aunque no fuera requerido) hemos implementado algo similar. 
+                Si no encontramos la palabra en el vocabulario del índice entonces vamos variando las palabras de la 
+                lista de posicionales con palabras sugeridas del método suggest hasta que encontremos alguna noticia.
+                 Si aún así no encontramos noticias (sería realmente un caso extremo), por ejemplo buscamos “una casa” 
+                 y nos hemos equivocado y hemos escrito “una caso” y no encontramos ninguna noticia, entonces vamos a
+                  hacer permutaciones un poco “a fuerza bruta” con palabras sugeridas del método suggest, por ejemplo 
+                  una y un son parecidas-> un caso. Y caso y casa son parecidas -> una casa.
+                    
+                    Por desgracia, me di cuenta más tarde de que nosotros no habíamos implementado la busqueda 
+                    posicional, de todas formas dejo esto aquí, que no me parece que sea incorrecto.
+                    Atentamente, el grupo de SAR.
+
+                """
 
                 pos = []   # por si acaso
                 if self.use_trie:
@@ -629,7 +643,7 @@ class SAR_Project:
                             termsaux = terms
                             termsaux[terms.index(t)] = p
                             pos += self.get_posting(termsaux, field)
-
+                print(pos)
                 if pos: #Si hemos encontrado noticias
                     return pos
                 # Fuerza bruta (Si aun asi no hemos encontrado noticias, por ejemplo nos hemos equivocado en caso por
